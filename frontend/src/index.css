@@ -35,12 +35,13 @@ body, html {
   color: var(--text-dark);
 }
 #sidebar.collapsed {
-  margin-left: -250px;
+  width: 64px;
 }
 #sidebar .brand {
   padding: 16px;
   font-weight: 600;
 }
+#sidebar.collapsed .brand span { display: none; }
 #sidebar nav a {
   color: var(--text-dark);
   text-decoration: none;
@@ -50,6 +51,19 @@ body, html {
 }
 #sidebar nav a:hover {
   background-color: rgba(255,255,255,0.2);
+}
+#sidebar .nav .nav-link { color: #fff; }
+#sidebar .nav .nav-link.active {
+  background-color: rgba(255,255,255,0.25);
+  color: #fff;
+  box-shadow: inset 4px 0 rgba(255,255,255,0.9);
+}
+#sidebar.collapsed .nav .nav-link { justify-content: center; }
+
+/* Responsivo */
+@media (max-width: 768px) {
+  #sidebar { margin-left: -250px; }
+  #sidebar.collapsed { margin-left: 0; }
 }
 
 #content {
@@ -67,8 +81,10 @@ body, html {
   padding: 16px;
 }
 
-/* Responsivo */
-@media (max-width: 768px) {
-  #sidebar { margin-left: -250px; }
-  #sidebar.collapsed { margin-left: 0; }
+#sidebar .btn-outline-light { color: #fff; border-color: rgba(255,255,255,0.6); }
+#sidebar .btn-outline-light:hover { background-color: rgba(255,255,255,0.2); }
+
+/* Dropdown da busca no header */
+#content header .dropdown-menu {
+  position: absolute;
 }
