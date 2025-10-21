@@ -190,13 +190,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </div>
         </nav>
       </aside>
+      <div className={`sidebar-overlay ${collapsed ? '' : 'show'}`} onClick={() => setCollapsed(true)} />
       <div id="content" className="bg-body">
         <header className="d-flex align-items-center gap-2">
           <button className="btn btn-outline-secondary btn-sm" onClick={toggleSidebar} title="Alternar Sidebar" aria-label="Alternar sidebar">
             <i className="fas fa-bars"></i>
           </button>
           <span className="ms-2 text-muted small">{breadcrumb}</span>
-          <div className="flex-grow-1 position-relative">
+          <div className="flex-grow-1 position-relative header-search">
+            {/* search input and dropdown untouched */}
             <input
               ref={searchRef}
               className="form-control form-control-sm pe-4"
