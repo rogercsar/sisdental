@@ -6,7 +6,7 @@ interface LayoutProps { children: React.ReactNode }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [collapsed, setCollapsed] = useState(false);
-  const [theme, setTheme] = useState<string>(() => localStorage.getItem('theme') || 'light');
+  const [theme] = useState<string>(() => localStorage.getItem('theme') || 'light');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -14,7 +14,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  const toggleTheme = () => setTheme((t) => (t === 'light' ? 'dark' : 'light'));
   const toggleSidebar = () => setCollapsed((c) => !c);
 
   const handleLogout = async () => {
