@@ -6,32 +6,45 @@ const PortalLogin: React.FC = () => {
   const supabase = useMemo(() => getSupabase(), []);
   const navigate = useNavigate();
 
-  const [cpf, setCpf] = useState('');
+  const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    const pid = localStorage.getItem('portalPacienteId');
-    if (pid) navigate('/portal/home');
+    const check = async () => {
+      if (!supabase) return;
+      const { data } = await supabase.auth.getSession();
+      if (data?.session) navigate('/portal/home');
+    };
+    check();
   }, []);
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     if (!supabase) { setError('Supabase não configurado.'); return; }
-    if (!cpf) { setError('Informe o CPF.'); return; }
+    if (!email || !senha) { setError('Informe email e senha.'); return; }
     setLoading(true);
     try {
-      // DEMO: autenticação baseada apenas no CPF.
-      const { data, error: pErr } = await supabase
-        .from('pacientes')
-        .select('id, nome, cpf')
-        .eq('cpf', cpf)
+      const { data: signInData, error: signErr } = await supabase.auth.signInWithPassword({ email, password: senha });
+      if (signErr) throw signErr;
+      if (!signInData.session?.user) throw new Error('Sessão inválida.');
+      const userId = signInData.session.user.id;
+
+      // Buscar vínculo do perfil com paciente
+      const { data: prof, error: profErr } = await supabase
+        .from('profiles')
+        .select('paciente_id, role')
+        .eq('id', userId)
         .single();
-      if (pErr) throw pErr;
-      if (!data) { setError('Paciente não encontrado.'); return; }
-      localStorage.setItem('portalPacienteId', String(data.id));
+      if (profErr) throw profErr;
+      if (!prof || prof.role !== 'paciente' || !prof.paciente_id) {
+        throw new Error('Sua conta não está vinculada a um paciente. Entre em contato com a clínica.');
+      }
+
+      localStorage.setItem('portalPacienteId', String(prof.paciente_id));
       navigate('/portal/home');
     } catch (e: any) {
       setError(e.message ?? String(e));
@@ -54,25 +67,24 @@ const PortalLogin: React.FC = () => {
               {error && <div className="alert alert-danger">{error}</div>}
               <form onSubmit={onSubmit} className="needs-validation" noValidate>
                 <div className="form-floating mb-3">
-                  <input id="cpf" type="text" className="form-control" placeholder="000.000.000-00" value={cpf} onChange={(e) => setCpf(e.target.value)} required />
-                  <label htmlFor="cpf">CPF</label>
+                  <input id="email" type="email" className="form-control" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                  <label htmlFor="email">Email</label>
                 </div>
                 <div className="input-group mb-3">
                   <div className="form-floating flex-grow-1">
-                    <input id="senha" type={showPassword ? 'text' : 'password'} className="form-control" placeholder="Senha" value={senha} onChange={(e) => setSenha(e.target.value)} />
+                    <input id="senha" type={showPassword ? 'text' : 'password'} className="form-control" placeholder="Senha" value={senha} onChange={(e) => setSenha(e.target.value)} required />
                     <label htmlFor="senha">Senha</label>
                   </div>
                   <button type="button" className="btn btn-outline-secondary" onClick={() => setShowPassword((s) => !s)} title={showPassword ? 'Ocultar senha' : 'Mostrar senha'}>
                     <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
                   </button>
                 </div>
-                <small className="text-muted d-block mb-2">Demo: apenas o CPF é validado nesta etapa.</small>
                 <button type="submit" className="btn btn-primary w-100" disabled={loading}>
                   {loading ? (<><span className="spinner-border spinner-border-sm me-2"></span>Entrando...</>) : 'Entrar'}
                 </button>
               </form>
               <div className="mt-3 text-center">
-                <Link to="/dashboard">Voltar ao Dashboard</Link>
+                <Link to="/login">Acesso Staff</Link>
               </div>
             </div>
           </div>

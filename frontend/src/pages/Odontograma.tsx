@@ -14,10 +14,17 @@ interface Tratamento {
   data_tratamento: string | null; // YYYY-MM-DD
 }
 
-const row1 = [18,17,16,15,14,13,12,11]; // arcada superior direita -> esquerda
-const row2 = [21,22,23,24,25,26,27,28]; // arcada superior esquerda -> direita
-const row3 = [38,37,36,35,34,33,32,31]; // arcada inferior esquerda -> direita
-const row4 = [41,42,43,44,45,46,47,48]; // arcada inferior direita -> esquerda
+interface Servico { id: number; nome: string; preco_padrao?: number | null; ativo?: boolean | null }
+
+const adultRow1 = [18,17,16,15,14,13,12,11]; // arcada superior direita -> esquerda
+const adultRow2 = [21,22,23,24,25,26,27,28]; // arcada superior esquerda -> direita
+const adultRow3 = [38,37,36,35,34,33,32,31]; // arcada inferior esquerda -> direita
+const adultRow4 = [41,42,43,44,45,46,47,48]; // arcada inferior direita -> esquerda
+
+const childRow1 = [55,54,53,52,51]; // superior direita-decíduos
+const childRow2 = [61,62,63,64,65]; // superior esquerda-decíduos
+const childRow3 = [75,74,73,72,71]; // inferior esquerda-decíduos
+const childRow4 = [81,82,83,84,85]; // inferior direita-decíduos
 
 const todayISO = () => {
   const d = new Date();
@@ -40,12 +47,16 @@ const Odontograma: React.FC = () => {
   const [paciente, setPaciente] = useState<Paciente | null>(null);
   const [tratamentos, setTratamentos] = useState<Tratamento[]>([]);
   const [selectedTooth, setSelectedTooth] = useState<number | null>(null);
+  const [arcada, setArcada] = useState<'adulta' | 'infantil'>('adulta');
 
   const [tipoTratamento, setTipoTratamento] = useState('');
+  const [servicos, setServicos] = useState<Servico[]>([]);
+  const [servicoId, setServicoId] = useState<number | 'manual' | ''>('');
   const [valor, setValor] = useState('');
   const [concluido, setConcluido] = useState(false);
   const [observacoes, setObservacoes] = useState('');
   const [data, setData] = useState(todayISO());
+  const [filtroStatus, setFiltroStatus] = useState<'todos' | 'concluido' | 'andamento'>('todos');
 
   const [, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -80,6 +91,22 @@ const Odontograma: React.FC = () => {
     };
     load();
   }, [supabase, pacienteId]);
+
+  useEffect(() => {
+    if (!supabase) return;
+    supabase
+      .from('servicos')
+      .select('id, nome, preco_padrao, ativo')
+      .eq('ativo', true)
+      .order('nome', { ascending: true })
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('Erro ao carregar serviços:', error);
+        } else {
+          setServicos((data || []) as Servico[]);
+        }
+      });
+  }, [supabase]);
 
   const tratamentosDoDente = (numero: number | null) => tratamentos.filter(t => t.dente_numero === numero);
 
@@ -141,8 +168,24 @@ const Odontograma: React.FC = () => {
       <div className="card mb-4 shadow-sm">
         <div className="card-body">
           <h5 className="card-title">Selecione um dente</h5>
+          <div className="d-flex gap-2 mb-3">
+            <button
+              type="button"
+              className={`btn btn-sm ${arcada === 'adulta' ? 'btn-primary' : 'btn-outline-primary'}`}
+              onClick={() => setArcada('adulta')}
+            >
+              Arcada Adulta
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm ${arcada === 'infantil' ? 'btn-primary' : 'btn-outline-primary'}`}
+              onClick={() => setArcada('infantil')}
+            >
+              Arcada Infantil
+            </button>
+          </div>
           <div className="mb-3">
-            {[row1, row2, row3, row4].map((row, idx) => (
+            {(arcada === 'adulta' ? [adultRow1, adultRow2, adultRow3, adultRow4] : [childRow1, childRow2, childRow3, childRow4]).map((row, idx) => (
               <div key={idx} className="d-flex flex-wrap gap-2 mb-2">
                 {row.map((n) => (
                   <button
@@ -155,7 +198,7 @@ const Odontograma: React.FC = () => {
               </div>
             ))}
           </div>
-          <p className="text-muted">Padrão FDI (11-18, 21-28, 31-38, 41-48).</p>
+          <p className="text-muted">FDI adulto (11–18, 21–28, 31–38, 41–48) e infantil (51–55, 61–65, 71–75, 81–85).</p>
         </div>
       </div>
 
@@ -175,7 +218,40 @@ const Odontograma: React.FC = () => {
               </div>
               <div className="col-md-6 mb-3">
                 <label className="form-label">Tratamento *</label>
-                <input type="text" className="form-control" value={tipoTratamento} onChange={(e) => setTipoTratamento(e.target.value)} required />
+                <select
+                  className="form-select"
+                  value={servicoId}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === '') {
+                      setServicoId('');
+                      setTipoTratamento('');
+                    } else if (v === 'manual') {
+                      setServicoId('manual');
+                      setTipoTratamento('');
+                    } else {
+                      const id = Number(v);
+                      setServicoId(id);
+                      const s = servicos.find(x => x.id === id);
+                      setTipoTratamento(s?.nome ?? '');
+                      if (s?.preco_padrao != null) setValor(String(s.preco_padrao));
+                    }
+                  }}
+                  required
+                >
+                  <option value="">Selecione o serviço...</option>
+                  {servicos.map(s => (<option key={s.id} value={s.id}>{s.nome}</option>))}
+                  <option value="manual">Outro (digitar)</option>
+                </select>
+                {servicoId === 'manual' && (
+                  <input
+                    type="text"
+                    className="form-control mt-2"
+                    placeholder="Descreva o tratamento"
+                    value={tipoTratamento}
+                    onChange={(e) => setTipoTratamento(e.target.value)}
+                  />
+                )}
               </div>
             </div>
             <div className="row">
@@ -204,36 +280,50 @@ const Odontograma: React.FC = () => {
         <div className="card-body">
           <h5 className="card-title">Tratamentos do Dente {selectedTooth ?? '-'}</h5>
           {selectedTooth && tratamentosDoDente(selectedTooth).length > 0 ? (
-            <div className="table-responsive">
-              <table className="table table-sm table-striped table-hover">
-                <thead>
-                  <tr>
-                    <th>Data</th>
-                    <th>Tratamento</th>
-                    <th>Valor</th>
-                    <th>Status</th>
-                    <th>Observações</th>
-                    <th>Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tratamentosDoDente(selectedTooth).map(t => (
-                    <tr key={t.id}>
-                      <td>{t.data_tratamento ?? '-'}</td>
-                      <td>{t.tipo_tratamento ?? '-'}</td>
-                      <td>{formatCurrency(t.valor)}</td>
-                      <td>{t.concluido ? (<span className="badge bg-success">Concluído</span>) : (<span className="badge bg-warning text-dark">Em Andamento</span>)}</td>
-                      <td>{t.observacoes ?? '-'}</td>
-                      <td>
-                        <button className="btn btn-sm btn-outline-primary me-2" onClick={() => toggleConcluido(t)}>
-                          {t.concluido ? 'Reabrir' : 'Concluir'}
-                        </button>
-                      </td>
+            <>
+              <div className="d-flex justify-content-end mb-2">
+                <div className="d-flex align-items-center gap-2">
+                  <span className="text-muted">Filtrar:</span>
+                  <select className="form-select form-select-sm" value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value as any)}>
+                    <option value="todos">Todos</option>
+                    <option value="concluido">Concluído</option>
+                    <option value="andamento">Em Andamento</option>
+                  </select>
+                </div>
+              </div>
+              <div className="table-responsive">
+                <table className="table table-sm table-striped table-hover">
+                  <thead>
+                    <tr>
+                      <th>Data</th>
+                      <th>Tratamento</th>
+                      <th>Valor</th>
+                      <th>Status</th>
+                      <th>Observações</th>
+                      <th>Ações</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {tratamentosDoDente(selectedTooth).filter(t => (
+                      filtroStatus === 'todos' ? true : (filtroStatus === 'concluido' ? !!t.concluido : !t.concluido)
+                    )).map(t => (
+                      <tr key={t.id}>
+                        <td>{t.data_tratamento ?? '-'}</td>
+                        <td>{t.tipo_tratamento ?? '-'}</td>
+                        <td>{formatCurrency(t.valor)}</td>
+                        <td>{t.concluido ? (<span className="badge bg-success">Concluído</span>) : (<span className="badge bg-warning text-dark">Em Andamento</span>)}</td>
+                        <td>{t.observacoes ?? '-'}</td>
+                        <td>
+                          <button className="btn btn-sm btn-outline-primary me-2" onClick={() => toggleConcluido(t)}>
+                            {t.concluido ? 'Reabrir' : 'Concluir'}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           ) : (
             <p className="text-muted">Nenhum tratamento para o dente selecionado.</p>
           )}

@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { getSupabase } from '../lib/supabase';
 
 interface Paciente { id: number; nome: string }
+interface Servico { id: number; nome: string; preco_padrao?: number | null; ativo?: boolean | null }
 
 const statusLista = ['Agendado', 'Confirmado', 'Realizado', 'Cancelado', 'Não Compareceu'];
 
@@ -17,6 +18,9 @@ const CadastrarAgendamento: React.FC = () => {
   const [hora, setHora] = useState('');
   const [status, setStatus] = useState('Agendado');
   const [observacoes, setObservacoes] = useState('');
+  const [servicos, setServicos] = useState<Servico[]>([]);
+  const [servicoId, setServicoId] = useState<number | 'manual' | ''>('');
+  const [precoSugerido, setPrecoSugerido] = useState<number | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,6 +33,22 @@ const CadastrarAgendamento: React.FC = () => {
       setPacientes(data as Paciente[]);
     };
     loadPacientes();
+  }, [supabase]);
+
+  useEffect(() => {
+    if (!supabase) return;
+    supabase
+      .from('servicos')
+      .select('id, nome, preco_padrao, ativo')
+      .eq('ativo', true)
+      .order('nome', { ascending: true })
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('Erro ao carregar serviços:', error);
+        } else {
+          setServicos((data || []) as Servico[]);
+        }
+      });
   }, [supabase]);
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -72,7 +92,45 @@ const CadastrarAgendamento: React.FC = () => {
         </div>
         <div className="mb-3">
           <label className="form-label">Serviço *</label>
-          <input type="text" className="form-control" required value={servico} onChange={(e) => setServico(e.target.value)} />
+          <select
+            className="form-select"
+            value={servicoId}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v === '') {
+                setServicoId('');
+                setServico('');
+                setPrecoSugerido(null);
+              } else if (v === 'manual') {
+                setServicoId('manual');
+                setServico('');
+                setPrecoSugerido(null);
+              } else {
+                const id = Number(v);
+                setServicoId(id);
+                const s = servicos.find(x => x.id === id);
+                setServico(s?.nome ?? '');
+                setPrecoSugerido(s?.preco_padrao ?? null);
+              }
+            }}
+            required
+          >
+            <option value="">Selecione o serviço...</option>
+            {servicos.map(s => (<option key={s.id} value={s.id}>{s.nome}</option>))}
+            <option value="manual">Outro (digitar)</option>
+          </select>
+          {servicoId === 'manual' && (
+            <input
+              type="text"
+              className="form-control mt-2"
+              placeholder="Descreva o serviço"
+              value={servico}
+              onChange={(e) => setServico(e.target.value)}
+            />
+          )}
+          {precoSugerido != null && (
+            <div className="form-text">Preço padrão: {precoSugerido.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</div>
+          )}
         </div>
         <div className="row">
           <div className="col-md-4 mb-3">

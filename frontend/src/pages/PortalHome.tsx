@@ -35,15 +35,29 @@ const PortalHome: React.FC = () => {
   const [docsLoading, setDocsLoading] = useState<boolean>(false);
 
   useEffect(() => {
-    const idStr = localStorage.getItem('portalPacienteId');
-    if (!idStr) { navigate('/portal/login'); return; }
-    const id = Number(idStr);
-
     const load = async () => {
       if (!supabase) { setError('Supabase não configurado.'); setLoading(false); return; }
       setLoading(true);
       setError(null);
       try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) { navigate('/portal/login'); return; }
+
+        let idStr = localStorage.getItem('portalPacienteId');
+        if (!idStr) {
+          const { data: prof, error: profErr } = await supabase
+            .from('profiles')
+            .select('paciente_id, role')
+            .eq('id', session.user.id)
+            .single();
+          if (profErr) throw profErr;
+          if (!prof || prof.role !== 'paciente' || !prof.paciente_id) {
+            throw new Error('Conta não vinculada a um paciente.');
+          }
+          idStr = String(prof.paciente_id);
+          localStorage.setItem('portalPacienteId', idStr);
+        }
+        const id = Number(idStr);
         const { data: p, error: pErr } = await supabase
           .from('pacientes')
           .select('id, nome, cpf, email, telefone')
@@ -97,7 +111,8 @@ const PortalHome: React.FC = () => {
     load();
   }, [supabase, navigate]);
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase?.auth.signOut();
     localStorage.removeItem('portalPacienteId');
     navigate('/portal/login');
   };
@@ -105,10 +120,11 @@ const PortalHome: React.FC = () => {
   const visualizarDocumento = async (doc: Documento) => {
     if (!supabase || !doc.storage_path) return;
     try {
-      const { data } = supabase.storage
+      const { data, error } = await supabase.storage
         .from('documentos')
-        .getPublicUrl(doc.storage_path);
-      if (data?.publicUrl) window.open(data.publicUrl, '_blank');
+        .createSignedUrl(doc.storage_path, 60);
+      if (error) throw error;
+      if (data?.signedUrl) window.open(data.signedUrl, '_blank');
     } catch (e: any) {
       setError(e.message ?? String(e));
     }

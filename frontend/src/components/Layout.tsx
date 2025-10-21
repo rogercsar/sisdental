@@ -59,12 +59,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <button className="btn btn-outline-secondary btn-sm" onClick={toggleSidebar} title="Alternar Sidebar">
             <i className="fas fa-bars"></i>
           </button>
-          <div className="ms-auto d-flex align-items-center gap-2">
-            <span className="text-muted small">Tema</span>
-            <button className="btn btn-outline-primary btn-sm" onClick={toggleTheme} title="Alternar tema claro/escuro">
-              <i className={`fas ${theme === 'light' ? 'fa-sun' : 'fa-moon'}`}></i>
-            </button>
-          </div>
+          {/* Removido ícone/controle de tema */}
         </header>
         <div className="content-inner">
           {children}

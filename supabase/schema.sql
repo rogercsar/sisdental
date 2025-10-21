@@ -8,6 +8,27 @@ create table if not exists profiles (
   created_at timestamp with time zone default now()
 );
 
+-- Trigger para criar perfil automaticamente ao criar usuário no Auth
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.profiles (id, role, nome)
+  values (new.id, 'staff', null)
+  on conflict (id) do nothing;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+after insert on auth.users
+for each row
+execute function public.handle_new_user();
+
 -- Pacientes
 create table if not exists pacientes (
   id bigserial primary key,
@@ -65,6 +86,16 @@ create table if not exists documentos_paciente (
   descricao text
 );
 
+-- Serviços (catálogo de tratamentos)
+create table if not exists servicos (
+  id bigserial primary key,
+  nome text not null,
+  descricao text,
+  preco_padrao numeric(10,2),
+  ativo boolean default true,
+  created_at timestamp with time zone default now()
+);
+
 -- Criar bucket de storage para documentos
 insert into storage.buckets (id, name, public)
 values ('documentos', 'documentos', false)
@@ -77,43 +108,146 @@ alter table agendamentos enable row level security;
 alter table odontograma_tratamentos enable row level security;
 alter table financeiro enable row level security;
 alter table documentos_paciente enable row level security;
+alter table servicos enable row level security;
 
--- Políticas temporárias: permitir leitura/escrita para usuários autenticados
-create policy "profiles_rw" on profiles for all
-  to authenticated using (true) with check (true);
+-- Vincular perfil ao paciente
+alter table profiles add column if not exists paciente_id bigint references pacientes(id) on delete set null;
 
-create policy "pacientes_rw" on pacientes for all
-  to authenticated using (true) with check (true);
+-- Remover policies existentes e tornar schema idempotente
+drop policy if exists "profiles_rw" on profiles;
+drop policy if exists "pacientes_rw" on pacientes;
+drop policy if exists "agendamentos_rw" on agendamentos;
+drop policy if exists "odontograma_rw" on odontograma_tratamentos;
+drop policy if exists "financeiro_rw" on financeiro;
+drop policy if exists "documentos_rw" on documentos_paciente;
+drop policy if exists "servicos_rw" on servicos;
 
-create policy "agendamentos_rw" on agendamentos for all
-  to authenticated using (true) with check (true);
+-- Políticas nomeadas deste schema (drop antes de create para evitar erro 42710)
+drop policy if exists "Read own profile" on profiles;
+drop policy if exists "Staff manage profiles" on profiles;
 
-create policy "odontograma_rw" on odontograma_tratamentos for all
-  to authenticated using (true) with check (true);
+drop policy if exists "Staff full access pacientes" on pacientes;
+drop policy if exists "Paciente read own" on pacientes;
 
-create policy "financeiro_rw" on financeiro for all
-  to authenticated using (true) with check (true);
+drop policy if exists "Staff full access agendamentos" on agendamentos;
+drop policy if exists "Paciente read own agendamentos" on agendamentos;
 
-create policy "documentos_rw" on documentos_paciente for all
-  to authenticated using (true) with check (true);
+drop policy if exists "Staff full access odontograma" on odontograma_tratamentos;
+drop policy if exists "Paciente read own odontograma" on odontograma_tratamentos;
 
--- Políticas de Storage para o bucket 'documentos'
-create policy "Authenticated can read" on storage.objects
-  as permissive for select
-  to authenticated
-  using (bucket_id = 'documentos');
+drop policy if exists "Staff full access financeiro" on financeiro;
+drop policy if exists "Paciente read own financeiro" on financeiro;
 
-create policy "Authenticated can insert" on storage.objects
-  as permissive for insert
-  to authenticated
-  with check (bucket_id = 'documentos');
+drop policy if exists "Staff full access documentos_paciente" on documentos_paciente;
+drop policy if exists "Paciente read own documentos_paciente" on documentos_paciente;
+drop policy if exists "Staff full access servicos" on servicos;
 
-create policy "Authenticated can update" on storage.objects
-  as permissive for update
-  to authenticated
-  using (bucket_id = 'documentos');
+-- Storage policies nomeadas
+drop policy if exists "Staff read documentos" on storage.objects;
+drop policy if exists "Staff insert documentos" on storage.objects;
+drop policy if exists "Staff update documentos" on storage.objects;
+drop policy if exists "Staff delete documentos" on storage.objects;
+drop policy if exists "Paciente read own documentos" on storage.objects;
 
-create policy "Authenticated can delete" on storage.objects
-  as permissive for delete
-  to authenticated
-  using (bucket_id = 'documentos');
+-- Perfis: leitura do próprio perfil; gestão por staff
+create policy "Read own profile" on profiles
+  for select to authenticated
+  using (id = auth.uid());
+
+-- REMOVIDO: policy "Staff manage profiles" causava recursão por referenciar a própria tabela
+-- A gestão de perfis será feita via service role / RPC específica, evitando RLS recursiva.
+
+-- Pacientes
+create policy "Staff full access pacientes" on pacientes
+  for all to authenticated
+  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'staff'))
+  with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'staff'));
+
+create policy "Paciente read own" on pacientes
+  for select to authenticated
+  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'paciente' and pacientes.id = p.paciente_id));
+
+-- Agendamentos
+create policy "Staff full access agendamentos" on agendamentos
+  for all to authenticated
+  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'staff'))
+  with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'staff'));
+
+create policy "Paciente read own agendamentos" on agendamentos
+  for select to authenticated
+  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'paciente' and agendamentos.paciente_id = p.paciente_id));
+
+-- Odontograma
+create policy "Staff full access odontograma" on odontograma_tratamentos
+  for all to authenticated
+  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'staff'))
+  with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'staff'));
+
+create policy "Paciente read own odontograma" on odontograma_tratamentos
+  for select to authenticated
+  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'paciente' and odontograma_tratamentos.paciente_id = p.paciente_id));
+
+-- Financeiro
+create policy "Staff full access financeiro" on financeiro
+  for all to authenticated
+  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'staff'))
+  with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'staff'));
+
+create policy "Paciente read own financeiro" on financeiro
+  for select to authenticated
+  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'paciente' and financeiro.paciente_id = p.paciente_id));
+
+-- Servicos
+create policy "Staff full access servicos" on servicos
+  for all to authenticated
+  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'staff'))
+  with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'staff'));
+
+-- Documentos (metadata)
+create policy "Staff full access documentos_paciente" on documentos_paciente
+  for all to authenticated
+  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'staff'))
+  with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'staff'));
+
+create policy "Paciente read own documentos_paciente" on documentos_paciente
+  for select to authenticated
+  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'paciente' and documentos_paciente.paciente_id = p.paciente_id));
+
+-- Storage: tornar bucket privado e políticas de acesso
+update storage.buckets set public = false where name = 'documentos';
+
+-- Remover políticas amplas de storage existentes
+drop policy if exists "Authenticated can read" on storage.objects;
+drop policy if exists "Authenticated can insert" on storage.objects;
+drop policy if exists "Authenticated can update" on storage.objects;
+drop policy if exists "Authenticated can delete" on storage.objects;
+
+-- Staff pode ler/escrever/atualizar/deletar no bucket 'documentos'
+create policy "Staff read documentos" on storage.objects
+  for select to authenticated
+  using (bucket_id = 'documentos' and exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'staff'));
+
+create policy "Staff insert documentos" on storage.objects
+  for insert to authenticated
+  with check (bucket_id = 'documentos' and exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'staff'));
+
+create policy "Staff update documentos" on storage.objects
+  for update to authenticated
+  using (bucket_id = 'documentos' and exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'staff'));
+
+create policy "Staff delete documentos" on storage.objects
+  for delete to authenticated
+  using (bucket_id = 'documentos' and exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'staff'));
+
+-- Paciente pode ler apenas seus próprios arquivos do bucket 'documentos'
+create policy "Paciente read own documentos" on storage.objects
+  for select to authenticated
+  using (
+    bucket_id = 'documentos'
+    and exists (
+      select 1 from public.profiles p
+      where p.id = auth.uid()
+        and p.role = 'paciente'
+        and name like ('pacientes/' || p.paciente_id || '/%')
+    )
+  );

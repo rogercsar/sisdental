@@ -143,11 +143,12 @@ const DocumentosPaciente: React.FC = () => {
   const visualizar = async (doc: Documento) => {
     if (!supabase || !doc.storage_path) return;
     try {
-      const { data } = supabase.storage
+      const { data, error } = await supabase.storage
         .from('documentos')
-        .getPublicUrl(doc.storage_path);
-      if (data?.publicUrl) {
-        window.open(data.publicUrl, '_blank');
+        .createSignedUrl(doc.storage_path, 60);
+      if (error) throw error;
+      if (data?.signedUrl) {
+        window.open(data.signedUrl, '_blank');
       }
     } catch (e: any) {
       setError(e.message ?? String(e));
