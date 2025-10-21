@@ -1,0 +1,602 @@
+{% extends 'base.html' %}
+
+{% block title %}Financeiro - Visão Geral - SisDental{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4"> {# Use container-fluid para ocupar mais espaço #}
+    <div class="row">
+        {# Área Principal (Tabela e Controles) - Ocupa 8 de 12 colunas em telas médias/grandes #}
+        <div class="col-md-8">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2><i class="fas fa-dollar-sign me-2"></i>Visão Geral Financeira</h2>
+                <div>
+                    {# Botão para abrir o modal de adição #}
+                    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalLancamento">
+                        <i class="fas fa-plus me-1"></i> Adicionar Lançamento
+                    </button>
+                </div>
+            </div>
+
+            {# Campo de Busca #}
+            <div class="mb-3">
+                <input type="text" id="searchInput" class="form-control" placeholder="Pesquisar por paciente, descrição...">
+            </div>
+
+            {# Tabela de Lançamentos Financeiros #}
+            <div class="table-responsive">
+                <table id="tabelaFinanceiro" class="table table-striped table-bordered table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Paciente</th>
+                            <th>Descrição</th>
+                            <th>Valor (R$)</th>
+                            <th>Vencimento</th>
+                            <th>Pagamento</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {# Linhas serão preenchidas pelo JavaScript #}
+                        <tr>
+                            <td colspan="7" class="text-center">Carregando lançamentos...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {# Barra Lateral (Gráficos) - Ocupa 4 de 12 colunas #}
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Resumo Financeiro</h5>
+                </div>
+                <div class="card-body">
+                    {# Gráfico de Status (Pago vs Pendente) #}
+                    <div class="mb-4">
+                        <h6>Status dos Lançamentos</h6>
+                        <canvas id="chartStatus" height="200"></canvas> {# Ajuste a altura conforme necessário #}
+                    </div>
+                    <hr>
+                    {# Gráfico de Fluxo (Exemplo: Total Pago vs Total Pendente) #}
+                    <div>
+                        <h6>Valores (Pago vs. Pendente)</h6>
+                        <canvas id="chartValores" height="200"></canvas> {# Ajuste a altura conforme necessário #}
+                         {# Você pode adicionar mais gráficos aqui (ex: Entradas vs Saídas se tiver essa distinção) #}
+                    </div>
+                </div>
+                 <div class="card-footer text-muted text-center">
+                    Dados atualizados em tempo real.
+                 </div>
+            </div>
+        </div>
+    </div> {# Fim da .row #}
+</div> {# Fim do .container-fluid #}
+
+<!-- Modal para Adicionar/Editar Lançamento -->
+<div class="modal fade" id="modalLancamento" tabindex="-1" aria-labelledby="modalLancamentoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg"> {# modal-lg para mais espaço #}
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalLancamentoLabel">Adicionar Lançamento Financeiro</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                {# Formulário reutilizado da versão anterior #}
+                <form id="formLancamento">
+                    {# Campo oculto para guardar o ID durante a edição #}
+                    <input type="hidden" id="lancamentoId" name="lancamento_id">
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="formPaciente" class="form-label">Paciente</label>
+                            {# O select de pacientes será populado via JS ou pode vir do backend #}
+                            <select id="formPaciente" name="paciente_id" class="form-select" required>
+                                <option value="" selected disabled>Carregando...</option>
+                                {# Opções adicionadas via JS #}
+                            </select>
+                        </div>
+                         <div class="col-md-6 mb-3">
+                            <label for="formAgendamento" class="form-label">Agendamento (Opcional)</label>
+                            {# Opcional: Popular agendamentos do paciente selecionado via JS #}
+                            <select id="formAgendamento" name="agendamento_id" class="form-select">
+                                <option value="">Nenhum</option>
+                                {# Opções adicionadas via JS se necessário #}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="formDescricao" class="form-label">Descrição</label>
+                        <input type="text" id="formDescricao" name="descricao" class="form-control" required>
+                    </div>
+                     <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="formValor" class="form-label">Valor (R$)</label>
+                            <input type="number" step="0.01" id="formValor" name="valor" class="form-control" required min="0" placeholder="Ex: 200.50">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="formStatus" class="form-label">Status</label>
+                            <select id="formStatus" name="status" class="form-control" required>
+                                <option value="pendente" selected>Pendente</option>
+                                <option value="pago">Pago</option>
+                            </select>
+                        </div>
+                    </div>
+                     <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="formDataVencimento" class="form-label">Data de Vencimento</label>
+                            <input type="date" id="formDataVencimento" name="data_vencimento" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="formDataPagamento" class="form-label">Data de Pagamento</label>
+                            <input type="date" id="formDataPagamento" name="data_pagamento" class="form-control">
+                            <small class="form-text text-muted">Preencher somente se o status for "Pago".</small>
+                        </div>
+                    </div>
+                    {# Adicionar tipo (Receita/Despesa) se necessário no futuro #}
+                    {# <div class="mb-3">...</div> #}
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Salvar Lançamento</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# JavaScript Específico da Página #}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+    // --- Seletores ---
+    const tabelaBody = document.getElementById('tabelaFinanceiro')?.querySelector('tbody');
+    const searchInput = document.getElementById('searchInput');
+    const modalElement = document.getElementById('modalLancamento');
+    const modalForm = document.getElementById('formLancamento');
+    const modalTitle = document.getElementById('modalLancamentoLabel');
+    const lancamentoIdInput = document.getElementById('lancamentoId');
+    const pacienteSelect = document.getElementById('formPaciente');
+    // Adicione seletores para outros campos do formulário se precisar manipulá-los diretamente
+    const formDescricao = document.getElementById('formDescricao');
+    const formValor = document.getElementById('formValor');
+    const formStatus = document.getElementById('formStatus');
+    const formDataVencimento = document.getElementById('formDataVencimento');
+    const formDataPagamento = document.getElementById('formDataPagamento');
+
+    const ctxStatus = document.getElementById('chartStatus')?.getContext('2d');
+    const ctxValores = document.getElementById('chartValores')?.getContext('2d');
+
+    // --- Variáveis Globais ---
+    let todosLancamentos = []; // Guarda todos os lançamentos carregados
+    let chartStatusInstance = null; // Guarda a instância do gráfico de status
+    let chartValoresInstance = null; // Guarda a instância do gráfico de valores
+    let financeiroModal = null; // Instância do Modal Bootstrap
+
+    // --- Inicialização do Modal ---
+    if (modalElement) {
+        financeiroModal = new bootstrap.Modal(modalElement);
+
+        // Limpar form ao fechar modal (exceto se for edição e reabrir logo)
+        modalElement.addEventListener('hidden.bs.modal', function () {
+            modalForm.reset();
+            lancamentoIdInput.value = ''; // Limpa ID oculto
+            modalTitle.textContent = 'Adicionar Lançamento Financeiro';
+            // Resetar validações se estiver usando
+        });
+
+        // Ajustar Data de Pagamento baseado no Status
+        formStatus.addEventListener('change', function() {
+            if (this.value === 'pago') {
+                formDataPagamento.required = true;
+                if (!formDataPagamento.value) { // Preenche data atual se mudar para pago e estiver vazio
+                    formDataPagamento.valueAsDate = new Date();
+                }
+            } else {
+                formDataPagamento.required = false;
+                formDataPagamento.value = ''; // Limpa data se mudar para pendente
+            }
+        });
+    } else {
+        console.error("Elemento do modal #modalLancamento não encontrado.");
+    }
+
+    // --- Funções Helper (Reutilizar/Adaptar de odontograma.html) ---
+    const formatDate = (dateString) => {
+        if (!dateString) return '-';
+        try {
+            const date = new Date(dateString + 'T00:00:00'); // Evita problemas de fuso
+            if (isNaN(date.getTime())) return dateString; // Retorna original se inválida
+            return date.toLocaleDateString('pt-BR'); // Formato DD/MM/YYYY
+        } catch (e) { return dateString; }
+    };
+
+    const formatCurrency = (value) => {
+        if (value === null || value === undefined || isNaN(value)) return '-';
+        try {
+            return Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        } catch (e) { return String(value); }
+    };
+
+    // --- Carregamento de Dados ---
+    async function carregarPacientesParaSelect() {
+        try {
+            // Assumindo que você tem uma API para listar pacientes
+            const response = await fetch('/api/pacientes/listar'); // AJUSTE A URL DA SUA API
+            if (!response.ok) throw new Error('Erro ao buscar pacientes');
+            const pacientes = await response.json();
+
+            pacienteSelect.innerHTML = '<option value="" selected disabled>Selecione...</option>'; // Limpa e adiciona placeholder
+            pacientes.forEach(paciente => {
+                // Assumindo que a API retorna { id: 1, nome: 'Nome Paciente' }
+                const option = document.createElement('option');
+                option.value = paciente.id;
+                option.textContent = paciente.nome;
+                pacienteSelect.appendChild(option);
+            });
+        } catch (error) {
+            console.error("Erro ao carregar pacientes:", error);
+            pacienteSelect.innerHTML = '<option value="" disabled>Erro ao carregar</option>';
+        }
+    }
+
+    async function carregarLancamentos() {
+        if (!tabelaBody) {
+            console.error("Elemento tbody da tabela não encontrado.");
+            return;
+        }
+        tabelaBody.innerHTML = `<tr><td colspan="7" class="text-center">Carregando...</td></tr>`;
+        try {
+            // **IMPORTANTE: Crie esta rota na sua API Flask/Django**
+            const response = await fetch('/api/financeiro/lancamentos'); // Rota para buscar TODOS os lançamentos
+            if (!response.ok) throw new Error(`Erro HTTP: ${response.status}`);
+            todosLancamentos = await response.json();
+            console.log("Lançamentos recebidos:", todosLancamentos);
+
+            // Ordena (opcional, ex: por data de vencimento mais recente)
+            todosLancamentos.sort((a, b) => new Date(b.data_vencimento) - new Date(a.data_vencimento));
+
+            renderizarTabela(todosLancamentos); // Renderiza a tabela com os dados
+            renderizarGraficos(todosLancamentos); // Renderiza os gráficos
+            await carregarPacientesParaSelect(); // Carrega pacientes para o modal
+
+        } catch (error) {
+            console.error("Erro ao carregar lançamentos:", error);
+            tabelaBody.innerHTML = `<tr><td colspan="7" class="text-center text-danger">Erro ao carregar dados: ${error.message}</td></tr>`;
+            todosLancamentos = []; // Limpa dados em caso de erro
+            renderizarGraficos([]); // Limpa gráficos
+        }
+    }
+
+    // --- Renderização ---
+    function renderizarTabela(lancamentos) {
+        if (!tabelaBody) return;
+        tabelaBody.innerHTML = ''; // Limpa tabela
+
+        if (lancamentos.length === 0) {
+            tabelaBody.innerHTML = `<tr><td colspan="7" class="text-center">Nenhum lançamento encontrado.</td></tr>`;
+            return;
+        }
+
+        lancamentos.forEach(lanc => {
+            const tr = document.createElement('tr');
+            tr.dataset.id = lanc.id; // Adiciona ID para referência futura
+            const isPago = lanc.status === 'pago';
+
+            tr.innerHTML = `
+                <td>${lanc.paciente_nome || 'N/A'}</td> {# Assumindo que a API retorna paciente_nome #}
+                <td>${lanc.descricao || '-'}</td>
+                <td>${formatCurrency(lanc.valor)}</td>
+                <td>${formatDate(lanc.data_vencimento)}</td>
+                <td>${formatDate(lanc.data_pagamento)}</td>
+                <td>
+                    <span class="badge bg-${isPago ? 'success' : 'warning text-dark'}">
+                        <i class="fas fa-${isPago ? 'check' : 'hourglass-half'} me-1"></i>
+                        ${isPago ? 'Pago' : 'Pendente'}
+                    </span>
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-info edit-btn" title="Editar Lançamento">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-${isPago ? 'secondary' : 'success'} toggle-pay-btn" title="${isPago ? 'Marcar como Pendente' : 'Marcar como Pago'}">
+                        <i class="fas fa-${isPago ? 'undo' : 'check'}"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger delete-btn" title="Excluir Lançamento">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </td>
+            `;
+            tabelaBody.appendChild(tr);
+        });
+
+        // Adicionar Listeners aos botões da tabela (DEPOIS de adicionar ao DOM)
+        addTableButtonListeners();
+    }
+
+    function renderizarGraficos(lancamentos) {
+        if (!ctxStatus || !ctxValores) {
+            console.warn("Contextos dos canvas para gráficos não encontrados.");
+            return;
+        }
+
+        // 1. Processar dados para os gráficos
+        let pagosCount = 0;
+        let pendentesCount = 0;
+        let valorPago = 0;
+        let valorPendente = 0;
+
+        lancamentos.forEach(lanc => {
+            if (lanc.status === 'pago') {
+                pagosCount++;
+                valorPago += parseFloat(lanc.valor || 0);
+            } else {
+                pendentesCount++;
+                valorPendente += parseFloat(lanc.valor || 0);
+            }
+        });
+
+        // 2. Destruir gráficos antigos (se existirem) para evitar sobreposição
+        if (chartStatusInstance) chartStatusInstance.destroy();
+        if (chartValoresInstance) chartValoresInstance.destroy();
+
+        // 3. Criar Gráfico de Status (Pizza/Doughnut)
+        chartStatusInstance = new Chart(ctxStatus, {
+            type: 'doughnut', // ou 'pie'
+            data: {
+                labels: ['Pagos', 'Pendentes'],
+                datasets: [{
+                    label: 'Status',
+                    data: [pagosCount, pendentesCount],
+                    backgroundColor: [
+                        'rgba(40, 167, 69, 0.7)', // Verde (Pago)
+                        'rgba(255, 193, 7, 0.7)'   // Amarelo (Pendente)
+                    ],
+                    borderColor: [
+                        'rgba(40, 167, 69, 1)',
+                        'rgba(255, 193, 7, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'top', }, title: { display: false } } // Oculta título padrão
+            }
+        });
+
+        // 4. Criar Gráfico de Valores (Barras)
+        chartValoresInstance = new Chart(ctxValores, {
+            type: 'bar',
+            data: {
+                labels: ['Valor Pago', 'Valor Pendente'],
+                datasets: [{
+                    label: 'Valor (R$)',
+                    data: [valorPago, valorPendente],
+                    backgroundColor: [
+                        'rgba(40, 167, 69, 0.7)', // Verde
+                        'rgba(255, 193, 7, 0.7)'   // Amarelo
+                    ],
+                    borderColor: [
+                        'rgba(40, 167, 69, 1)',
+                        'rgba(255, 193, 7, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                indexAxis: 'y', // Barras horizontais podem ser melhores aqui
+                scales: {
+                    x: { beginAtZero: true, ticks: { callback: value => formatCurrency(value) } }, // Formata eixo X
+                    y: { beginAtZero: true }
+                },
+                plugins: { legend: { display: false }, title: { display: false } } // Oculta legenda e título
+            }
+        });
+        console.log("Gráficos renderizados.");
+    }
+
+    // --- Filtragem ---
+    function filtrarTabela() {
+        const termo = searchInput.value.toLowerCase().trim();
+        const linhas = tabelaBody.querySelectorAll('tr');
+
+        linhas.forEach(linha => {
+            // Verifica se a linha é de dados (tem dataset.id) ou mensagem
+            if (!linha.dataset.id) {
+                 // Se for a linha de "Nenhum registro", esconde se houver termo
+                 if (linha.querySelector('td[colspan="7"]')) {
+                     linha.style.display = termo ? 'none' : '';
+                 }
+                 return; // Pula linhas de mensagem
+            }
+
+            const textoLinha = linha.textContent.toLowerCase();
+            if (textoLinha.includes(termo)) {
+                linha.style.display = ''; // Mostra a linha
+            } else {
+                linha.style.display = 'none'; // Esconde a linha
+            }
+        });
+    }
+
+    // --- Ações da Tabela e Modal ---
+    function addTableButtonListeners() {
+        tabelaBody.querySelectorAll('.edit-btn').forEach(btn => {
+            btn.addEventListener('click', handleEditClick);
+        });
+        tabelaBody.querySelectorAll('.toggle-pay-btn').forEach(btn => {
+            btn.addEventListener('click', handleTogglePayClick);
+        });
+        tabelaBody.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', handleDeleteClick);
+        });
+    }
+
+    function handleEditClick(event) {
+        const button = event.currentTarget;
+        const tr = button.closest('tr');
+        const id = tr.dataset.id;
+        const lancamento = todosLancamentos.find(l => String(l.id) === id);
+
+        if (!lancamento || !financeiroModal) return;
+
+        console.log("Editando lançamento:", lancamento);
+
+        // Preencher o formulário do modal
+        modalTitle.textContent = 'Editar Lançamento Financeiro';
+        lancamentoIdInput.value = lancamento.id;
+        pacienteSelect.value = lancamento.paciente_id; // Assumindo que a API retorna paciente_id
+        // Opcional: Carregar/selecionar agendamento se houver lancamento.agendamento_id
+        formDescricao.value = lancamento.descricao || '';
+        formValor.value = lancamento.valor || '';
+        formStatus.value = lancamento.status || 'pendente';
+        formDataVencimento.value = lancamento.data_vencimento || '';
+        formDataPagamento.value = lancamento.data_pagamento || '';
+        // Disparar change no status para ajustar required/valor da data de pagamento
+        formStatus.dispatchEvent(new Event('change'));
+
+        financeiroModal.show();
+    }
+
+    async function handleTogglePayClick(event) {
+        const button = event.currentTarget;
+        const tr = button.closest('tr');
+        const id = tr.dataset.id;
+        const lancamento = todosLancamentos.find(l => String(l.id) === id);
+
+        if (!lancamento) return;
+
+        const novoStatus = lancamento.status === 'pago' ? 'pendente' : 'pago';
+        const dataPagamento = novoStatus === 'pago' ? new Date().toISOString().split('T')[0] : null; // Data atual ou null
+
+        console.log(`Marcando ${id} como ${novoStatus}`);
+
+        try {
+            // **IMPORTANTE: Crie esta rota na sua API Flask/Django**
+            const response = await fetch(`/api/financeiro/lancamentos/${id}/status`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: novoStatus, data_pagamento: dataPagamento })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.erro || `Erro HTTP: ${response.status}`);
+            }
+
+            // Atualiza localmente e re-renderiza
+            const index = todosLancamentos.findIndex(l => String(l.id) === id);
+            if (index !== -1) {
+                todosLancamentos[index].status = novoStatus;
+                todosLancamentos[index].data_pagamento = dataPagamento;
+                renderizarTabela(todosLancamentos); // Atualiza a linha específica ou a tabela toda
+                renderizarGraficos(todosLancamentos); // Atualiza gráficos
+            } else {
+                await carregarLancamentos(); // Recarrega tudo se não encontrar localmente
+            }
+
+        } catch (error) {
+            console.error("Erro ao alterar status de pagamento:", error);
+            alert(`Erro ao atualizar status: ${error.message}`);
+        }
+    }
+
+    async function handleDeleteClick(event) {
+        const button = event.currentTarget;
+        const tr = button.closest('tr');
+        const id = tr.dataset.id;
+
+        if (!confirm(`Tem certeza que deseja excluir o lançamento ID ${id}?`)) {
+            return;
+        }
+
+        console.log(`Excluindo lançamento ${id}`);
+
+        try {
+            // **IMPORTANTE: Crie esta rota na sua API Flask/Django**
+            const response = await fetch(`/api/financeiro/lancamentos/${id}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok && response.status !== 204) { // 204 No Content é OK para DELETE
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.erro || `Erro HTTP: ${response.status}`);
+            }
+
+            // Remove localmente e re-renderiza
+            todosLancamentos = todosLancamentos.filter(l => String(l.id) !== id);
+            renderizarTabela(todosLancamentos);
+            renderizarGraficos(todosLancamentos);
+
+        } catch (error) {
+            console.error("Erro ao excluir lançamento:", error);
+            alert(`Erro ao excluir: ${error.message}`);
+        }
+    }
+
+    async function handleFormSubmit(event) {
+        event.preventDefault();
+        const id = lancamentoIdInput.value;
+        const isEditing = !!id;
+        const url = isEditing ? `/api/financeiro/lancamentos/${id}` : '/api/financeiro/lancamentos';
+        const method = isEditing ? 'PUT' : 'POST';
+
+        // Coleta dados do form
+        const formData = new FormData(modalForm);
+        const data = Object.fromEntries(formData.entries());
+
+        // Ajusta valor para número e data de pagamento para null se pendente
+        data.valor = parseFloat(data.valor) || 0;
+        if (data.status === 'pendente') {
+            data.data_pagamento = null;
+        } else if (!data.data_pagamento) {
+            // Se for pago e não tiver data, usa hoje (ou pode validar e exigir)
+            data.data_pagamento = new Date().toISOString().split('T')[0];
+        }
+
+        console.log(`Salvando (${method}) em ${url}:`, data);
+
+        try {
+            const response = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.erro || `Erro HTTP: ${response.status}`);
+            }
+
+            // const savedData = await response.json(); // API deve retornar o objeto salvo/atualizado
+            console.log("Salvo com sucesso!");
+
+            financeiroModal.hide(); // Fecha o modal
+            await carregarLancamentos(); // Recarrega tudo para refletir a mudança
+
+        } catch (error) {
+            console.error("Erro ao salvar lançamento:", error);
+            alert(`Erro ao salvar: ${error.message}`);
+            // Não fecha o modal em caso de erro para o usuário corrigir
+        }
+    }
+
+    // --- Event Listeners Globais ---
+    if (searchInput) {
+        searchInput.addEventListener('input', filtrarTabela);
+    }
+
+    if (modalForm) {
+        modalForm.addEventListener('submit', handleFormSubmit);
+    }
+
+    // --- Inicialização ---
+    carregarLancamentos(); // Carrega os dados ao iniciar a página
+
+}); // Fim do DOMContentLoaded
+</script>
+{% endblock %}

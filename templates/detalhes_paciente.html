@@ -1,0 +1,221 @@
+{% extends 'base.html' %}
+
+{% block title %}Detalhes - {{ paciente.nome }} - SisDental{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+    {# --- Informações do Paciente e Botões de Ação --- #}
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0"><i class="fas fa-user me-2"></i>{{ paciente.nome }}</h4>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <p><strong>CPF:</strong> {{ paciente.cpf or 'Não informado' }}</p>
+                    <p><strong>Data de Nascimento:</strong> {{ paciente.data_nascimento or 'Não informada' }}</p> {# Usando a data formatada do backend #}
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Telefone:</strong> {{ paciente.telefone or 'Não informado' }}</p>
+                    <p><strong>Email:</strong> {{ paciente.email or 'Não informado' }}</p>
+                </div>
+            </div>
+
+            {# --- BOTÕES DE AÇÃO ADICIONADOS AQUI --- #}
+            <div class="mt-3 border-top pt-3">
+                <h5>Ações Rápidas:</h5>
+                <a href="{{ url_for('gerar_atestado', paciente_id=paciente.id) }}" class="btn btn-primary me-2 mb-2" target="_blank">
+                    <i class="fas fa-file-medical-alt me-1"></i> Gerar Atestado
+                </a>
+                <a href="{{ url_for('gerar_receita', paciente_id=paciente.id) }}" class="btn btn-info me-2 mb-2" target="_blank">
+                    <i class="fas fa-file-prescription me-1"></i> Gerar Receita
+                </a>
+                {# Adicione outros botões aqui se necessário #}
+                 <a href="{{ url_for('odontograma_paciente', paciente_id=paciente.id) }}" class="btn btn-secondary me-2 mb-2">
+                    <i class="fas fa-tooth me-1"></i> Ver Odontograma
+                </a>
+                 <a href="{{ url_for('editar_paciente', id=paciente.id) }}" class="btn btn-warning mb-2">
+                    <i class="fas fa-edit me-1"></i> Editar Cadastro
+                </a>
+            </div>
+            {# --- FIM DOS BOTÕES DE AÇÃO --- #}
+
+        </div>
+    </div>
+
+    {# --- Abas para Histórico (Tratamentos, Financeiro, Agendamentos) --- #}
+    <ul class="nav nav-tabs mb-3" id="historicoTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="tratamentos-tab" data-bs-toggle="tab" data-bs-target="#tratamentos-content" type="button" role="tab" aria-controls="tratamentos-content" aria-selected="true">
+                <i class="fas fa-notes-medical me-1"></i> Tratamentos Odontológicos
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="financeiro-tab" data-bs-toggle="tab" data-bs-target="#financeiro-content" type="button" role="tab" aria-controls="financeiro-content" aria-selected="false">
+                <i class="fas fa-dollar-sign me-1"></i> Histórico Financeiro
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="agendamentos-tab" data-bs-toggle="tab" data-bs-target="#agendamentos-content" type="button" role="tab" aria-controls="agendamentos-content" aria-selected="false">
+                <i class="fas fa-calendar-alt me-1"></i> Próximos Agendamentos
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="historicoTabsContent">
+        {# --- Conteúdo da Aba Tratamentos --- #}
+        <div class="tab-pane fade show active" id="tratamentos-content" role="tabpanel" aria-labelledby="tratamentos-tab">
+            <h5>Histórico de Tratamentos</h5>
+            {% if tratamentos %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Dente</th>
+                                <th>Tratamento</th>
+                                <th>Valor (R$)</th>
+                                <th>Status</th>
+                                <th>Observações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for t in tratamentos %}
+                            <tr>
+                                <td>{{ t.data_tratamento or 'N/A' }}</td> {# Usando data formatada #}
+                                <td>{{ t.dente_numero or '-' }}</td>
+                                <td>{{ t.tipo_tratamento or '-' }}</td>
+                                <td>
+                                    {% if t.valor is defined and t.valor is not none and t.valor != '' %}
+                                        {% set valor_float = t.valor | float(default=None) %}
+                                        {% if valor_float is number %}
+                                            {# Opção 1: Formatação básica com 2 casas decimais #}
+                                            R$ {{ "%.2f" | format(valor_float) }}
+                                            {# REMOVA AS LINHAS DA OPÇÃO 2 DAQUI #}
+                                        {% else %}
+                                            {{ t.valor }} (Inválido)
+                                        {% endif %}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                
+                                
+                                
+
+                                <td>
+                                    {% if t.concluido %}
+                                        <span class="badge bg-success">Concluído</span>
+                                    {% else %}
+                                        <span class="badge bg-warning text-dark">Em Andamento</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ t.observacoes or '-' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-muted">Nenhum tratamento registrado no odontograma.</p>
+            {% endif %}
+        </div>
+
+        {# --- Conteúdo da Aba Financeiro --- #}
+        <div class="tab-pane fade" id="financeiro-content" role="tabpanel" aria-labelledby="financeiro-tab">
+             <h5>Histórico Financeiro</h5>
+             {% if financeiro_lista %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Vencimento</th>
+                                <th>Descrição</th>
+                                <th>Valor (R$)</th>
+                                <th>Status</th>
+                                <th>Data Pagamento</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for f in financeiro_lista %}
+                            <tr>
+                                <td>{{ f.data_vencimento if f.data_vencimento else '-' }}</td>
+
+                                <td>{{ f.descricao or '-' }}</td>
+                                <td>
+                                    {% if f.valor is defined and f.valor is not none and f.valor != '' %}
+                                        {% set valor_float = f.valor | float(default=None) %}
+                                        {% if valor_float is number %}
+                                            {# Opção 1: Formatação básica #}
+                                            R$ {{ "%.2f" | format(valor_float) }}
+                                            {# REMOVA AS LINHAS DA OPÇÃO 2 DAQUI #}
+                                        {% else %}
+                                            {{ f.valor }} (Inválido)
+                                        {% endif %}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                
+                                
+                                
+                                
+                                
+
+                                <td>
+                                    {% if f.status == 'pago' %}
+                                        <span class="badge bg-success">Pago</span>
+                                    {% else %}
+                                        <span class="badge bg-warning text-dark">Pendente</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ f.data_pagamento if f.data_pagamento else '-' }}</td>
+
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+             {% else %}
+                <p class="text-muted">Nenhum lançamento financeiro encontrado.</p>
+             {% endif %}
+        </div>
+
+        {# --- Conteúdo da Aba Agendamentos Futuros --- #}
+        <div class="tab-pane fade" id="agendamentos-content" role="tabpanel" aria-labelledby="agendamentos-tab">
+            <h5>Próximos Agendamentos</h5>
+             {% if agendamentos_futuros %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Hora</th>
+                                <th>Serviço</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for a in agendamentos_futuros %}
+                            <tr>
+                                <td>{{ a.data if a.data else '-' }}</td>
+
+                                <td>{{ a.hora_f or '-' }}</td> {# Usando hora_f do backend #}
+                                <td>{{ a.servico or '-' }}</td>
+                                <td>{{ a.status or '-' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+             {% else %}
+                <p class="text-muted">Nenhum agendamento futuro encontrado.</p>
+             {% endif %}
+        </div>
+    </div>
+
+</div>
+
+
+{% endblock %}

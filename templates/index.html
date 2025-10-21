@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - SisDental{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+  <!-- Cards de indicadores -->
+  <div class="col-md-4 mb-3">
+    {# Adicionado h-100 para tentar manter a altura igual #}
+    <div class="card h-100 p-3 shadow">
+      <div class="d-flex align-items-center">
+        <div class="me-3"><i class="fas fa-users fa-2x text-primary"></i></div>
+        <div>
+          <h5>Total de Pacientes</h5>
+          {# Usa a variável do Flask. default('N/A') é um fallback caso a variável não exista #}
+          <h3>{{ dashboard.total_pacientes | default('N/A') }}</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4 mb-3">
+    <div class="card h-100 p-3 shadow">
+      <div class="d-flex align-items-center">
+        <div class="me-3"><i class="fas fa-calendar-day fa-2x text-success"></i></div>
+        <div>
+          <h5>Consultas do Dia</h5>
+          <h3>{{ dashboard.consultas_hoje | default('N/A') }}</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4 mb-3">
+    <div class="card h-100 p-3 shadow">
+      <div class="d-flex align-items-center">
+        <div class="me-3"><i class="fas fa-clock fa-2x text-warning"></i></div>
+        <div>
+          {# Ajustei o título para refletir melhor o dado (Total), ou ajuste a query no Flask #}
+          <h5>Total de Agendamentos</h5>
+          <h3>{{ dashboard.total_agendamentos | default('N/A') }}</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Lista de últimos agendamentos (Agora são os de Hoje) -->
+<div class="card mb-4 shadow card-light"> {# Adiciona classe de tema #}
+  <div class="card-body">
+    <h5 class="card-title mb-3">Agendamentos de Hoje</h5>
+    <ul class="list-group list-group-flush">
+      {# Loop sobre a lista passada pelo Flask #}
+      {% for agendamento in dashboard.agendamentos_hoje_lista %}
+        {# Usa list-group-item-light/dark para tema #}
+        <li class="list-group-item list-group-item-light d-flex justify-content-between align-items-center">
+
+          {# Lado Esquerdo: Paciente e Serviço #}
+          <span>
+            <i class="fas fa-user text-muted me-2"></i>
+            {# Link no nome do paciente para a página de detalhes #}
+            <a href="{{ url_for('detalhes_paciente', paciente_id=agendamento.paciente_id) }}" class="link-body-emphasis text-decoration-none"> {# Usa classes Bootstrap 5.3 para link #}
+               <strong>{{ agendamento.nome }}</strong>
+            </a>
+             - <span class="text-muted">{{ agendamento.servico }}</span> {# Serviço com cor secundária #}
+          </span>
+
+          {# Lado Direito: Hora e Botão "Iniciar Consulta" #}
+          <div class="d-flex align-items-center"> {# Agrupa hora e botão #}
+              <span class="badge text-bg-primary rounded-pill fs-6 me-2">{{ agendamento.hora_formatada }}</span> {# Badge um pouco maior e com margem #}
+              {# NOVO BOTÃO/LINK para detalhes_paciente #}
+              <a href="{{ url_for('detalhes_paciente', paciente_id=agendamento.paciente_id) }}"
+                 class="btn btn-outline-success btn-sm" {# Botão verde outline #}
+                 title="Ver detalhes e histórico do paciente">
+                 <i class="fas fa-play me-1"></i> {# Ícone de play #}
+                 Iniciar Consulta
+              </a>
+          </div>
+        </li>
+      {% else %}
+        {# Mensagem se não houver agendamentos - Adapta tema #}
+        <li class="list-group-item list-group-item-light text-center text-muted fst-italic">Nenhum agendamento para hoje.</li>
+      {% endfor %}
+
+      {# Link para ver todos, fora do loop - Adapta tema #}
+      <li class="list-group-item list-group-item-light text-center">
+          <a href="{{ url_for('agendamentos') }}">Ver todos os agendamentos</a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<!-- Ações rápidas -->
+<div class="card shadow">
+  <div class="card-body">
+    <h5 class="card-title mb-3">Ações Rápidas</h5>
+    <div class="d-flex flex-wrap gap-2">
+      <a href="/pacientes" class="btn btn-outline-primary">
+        <i class="fas fa-user-plus"></i> Pacientes
+      </a>
+      <a href="/cadastrar_agendamento" class="btn btn-outline-success">
+        <i class="fas fa-calendar-plus"></i> Nova Consulta
+      </a>
+      <a href="{{ url_for('register') }}" class="btn btn-outline-info"> {# Mudado para a rota 'register' e cor info #}
+        <i class="fas fa-user-plus"></i> Novo Usuário {# Ícone de adicionar usuário #}
+      </a>
+      <a href="/financeiro" class="btn btn-outline-warning">
+        <i class="fas fa-calendar-alt"></i> Financeiro
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block title %}Login - SisDental{% endblock %}
+{% block content %}
+<div class="text-center mb-4">
+  <i class="fa-solid fa-tooth fa-3x text-info"></i>
+  <h3 class="mt-2">Login - SisDental</h3>
+</div>
+<form method="POST">
+  <div class="mb-3">
+    <label for="username" class="form-label">Usuário</label>
+    <input type="text" name="username" class="form-control" required>
+  </div>
+  <div class="mb-3">
+    <label for="password" class="form-label">Senha</label>
+    <input type="password" name="password" class="form-control" required>
+  </div>
+  <button type="submit" class="btn btn-primary w-100">Entrar</button>
+  <!--<div class="text-center mt-3">
+    <a href="{{ url_for('register') }}">Não tem conta? Cadastre-se</a>
+  </div>-->
+  <div class="text-center mt-3">
+    <a href="{{ url_for('portal_login') }}">Acesso paciente</a>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title %}Lista de Pacientes - SisDental{% endblock %} {# Optional: Add a specific title #}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Lista de Pacientes</h2>
+    <form method="get" class="row g-2 mb-3 align-items-center"> {# Improved form layout #}
+        <div class="col-auto">
+            <input type="text" name="busca" placeholder="Buscar por nome" class="form-control" value="{{ busca }}">
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-primary">Buscar</button>
+        </div>
+        <div class="col-auto ms-auto"> {# Push Add button to the right #}
+            <a href="{{ url_for('cadastrar_paciente') }}" class="btn btn-success">
+                <i class="fas fa-plus"></i> Adicionar Paciente
+            </a>
+        </div>
+    </form>
+
+    <div class="table-responsive"> {# Added for better mobile view #}
+        <table class="table table-bordered table-hover"> {# Added table-hover #}
+            <thead class="table-light"> {# Lighter header #}
+                <tr>
+                    <th>Nome</th>
+                    <th>CPF</th>
+                    <th>Telefone</th>
+                    <th>Email</th>
+                    <th>Data de Nascimento</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in pacientes %}
+                <tr>
+                    <td>{{ p[1] }}</td>
+                    <td>{{ p[2] }}</td>
+                    <td>{{ p[3] }}</td>
+                    <td>{{ p[4] }}</td>
+                    {# Format date if it's a date object, otherwise display as is #}
+                    <td>{{ p[5].strftime('%d/%m/%Y') if p[5] else '' }}</td>
+                    <td>
+                        <a href="{{ url_for('editar_paciente', id=p[0]) }}" class="btn btn-sm btn-warning" title="Editar"><i class="fas fa-edit"></i></a>
+                        <a href="{{ url_for('excluir_paciente', id=p[0]) }}" class="btn btn-sm btn-danger" onclick="return confirm('Tem certeza que deseja excluir {{ p[1] }}?');" title="Excluir"><i class="fas fa-trash-alt"></i></a>
+                        {# CORRECTED LINE: Use p[0] instead of paciente[0] #}
+                        <a href="{{ url_for('odontograma_paciente', paciente_id=p[0]) }}" class="btn btn-sm btn-info" title="Odontograma"><i class="fas fa-tooth"></i></a>
+                    </td>
+                </tr>
+                {% else %} {# Added case for no patients found #}
+                <tr>
+                    <td colspan="6" class="text-center">Nenhum paciente encontrado.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Paginação (mantida) -->
+    {% if pacientes %} {# Only show pagination if there are patients #}
+    <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center">
+            <li class="page-item {% if pagina <= 1 %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('pacientes', pagina=pagina-1, busca=busca) }}" aria-label="Anterior">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+            {# Add page numbers if needed later #}
+            <li class="page-item active"><span class="page-link">{{ pagina }}</span></li>
+            {# Simple next button for now - check if there are more pages in Flask later #}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('pacientes', pagina=pagina+1, busca=busca) }}" aria-label="Próxima">
+                     <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %} {# <--- ADD THIS LINE TO CLOSE THE 'content' BLOCK #}

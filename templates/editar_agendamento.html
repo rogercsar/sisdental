@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block title %}Editar Agendamento - SisDental{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Editar Agendamento</h2>
+
+    {# Exibe o nome do paciente associado #}
+    {% if agendamento.nome_paciente %}
+    <p class="lead">Paciente: <strong>{{ agendamento.nome_paciente }}</strong></p>
+    {% endif %}
+
+    <form method="POST" action="{{ url_for('editar_agendamento', id=agendamento.id) }}" class="card card-light p-4 shadow-sm"> {# Adiciona classes de tema #}
+
+        {# Campo Paciente (Dropdown) #}
+        <div class="mb-3">
+            <label for="paciente_id" class="form-label">Paciente <span class="text-danger">*</span></label>
+            <select name="paciente_id" id="paciente_id" class="form-select form-control-light" required> {# Adiciona classes de tema #}
+                <option value="" disabled>Selecione o paciente...</option>
+                {% for paciente in pacientes %}
+                    <option value="{{ paciente[0] }}" {% if paciente[0] == agendamento.paciente_id %}selected{% endif %}>
+                        {{ paciente[1] }} {# Nome do paciente #}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        {# Campo Serviço #}
+        <div class="mb-3">
+            <label for="servico" class="form-label">Serviço <span class="text-danger">*</span></label>
+            <input type="text" name="servico" id="servico" class="form-control form-control-light" required value="{{ agendamento.servico | default('', true) }}"> {# Adiciona classes de tema #}
+        </div>
+
+        <div class="row">
+            {# Campo Data #}
+            <div class="col-md-4 mb-3">
+                <label for="data" class="form-label">Data <span class="text-danger">*</span></label>
+                <input type="date" name="data" id="data" class="form-control form-control-light" required value="{{ agendamento.data_form | default('', true) }}"> {# Adiciona classes de tema #}
+            </div>
+
+            {# Campo Hora #}
+            <div class="col-md-4 mb-3">
+                <label for="hora" class="form-label">Hora <span class="text-danger">*</span></label>
+                <input type="time" name="hora" id="hora" class="form-control form-control-light" required value="{{ agendamento.hora_form | default('', true) }}"> {# Adiciona classes de tema #}
+            </div>
+
+            {# Campo Status #}
+            <div class="col-md-4 mb-3">
+                <label for="status" class="form-label">Status <span class="text-danger">*</span></label>
+                <select name="status" id="status" class="form-select form-control-light" required> {# Adiciona classes de tema #}
+                    {% for stat in status_lista %}
+                        <option value="{{ stat }}" {% if stat == agendamento.status %}selected{% endif %}>{{ stat }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        {# Campo Observações #}
+        <div class="mb-3">
+            <label for="observacoes" class="form-label">Observações</label>
+            <textarea name="observacoes" id="observacoes" class="form-control form-control-light" rows="3">{{ agendamento.observacoes | default('', true) }}</textarea> {# Adiciona classes de tema #}
+        </div>
+
+        {# Botões de Ação #}
+        <div class="d-flex justify-content-end">
+            <a href="{{ url_for('agendamentos') }}" class="btn btn-secondary me-2">Cancelar</a>
+            <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+        </div>
+
+    </form>
+</div>
+{% endblock %}
+
+{# Bloco scripts vazio #}
+{% block scripts %}
+{{ super() }}
+{% endblock %}

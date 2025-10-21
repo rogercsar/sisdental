@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}Cadastro - SisDental{% endblock %}
+{% block content %}
+<div class="text-center mb-4">
+  <i class="fa-solid fa-user-plus fa-3x text-success"></i>
+  <h3 class="mt-2">Criar Conta</h3>
+</div>
+<form method="POST">
+  <div class="mb-3">
+    <label for="username" class="form-label">Nome de Usuário</label>
+    <input type="text" name="username" class="form-control" required>
+  </div>
+  <div class="mb-3">
+    <label for="password" class="form-label">Senha</label>
+    <input type="password" name="password" class="form-control" required>
+  </div>
+  <button type="submit" class="btn btn-success w-100">Cadastrar</button>
+  <div class="text-center mt-3">
+    <a href="{{ url_for('login') }}">Já tem conta? Faça login</a>
+  </div>
+</form>
+{% endblock %}

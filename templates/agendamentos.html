@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+
+{% block title %}Agendamentos - SisDental{% endblock %} {# Título adicionado #}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 style="margin-bottom: 40px;">Agendamentos</h2>
+
+    {# Formulário de Filtro - Adicionado classes de tema #}
+    <form method="GET" class="row g-3 align-items-center mb-4 p-3 border rounded card-light shadow-sm"> {# Adicionado card-light/dark #}
+        <div class="col-md-3">
+            <label for="paciente" class="visually-hidden">Paciente</label>
+            <input type="text" name="paciente" id="paciente" class="form-control form-control-light" placeholder="Nome do Paciente" value="{{ filtros.get('paciente', '') }}"> {# Adicionado form-control-light/dark #}
+        </div>
+        <div class="col-md-3">
+            <label for="data" class="visually-hidden">Data</label>
+            <input type="date" name="data" id="data" class="form-control form-control-light" value="{{ filtros.get('data', '') }}"> {# Adicionado form-control-light/dark #}
+        </div>
+        <div class="col-md-3">
+            <label for="status" class="visually-hidden">Status</label>
+            <select name="status" id="status" class="form-select form-control-light"> {# Adicionado form-control-light/dark #}
+                <option value="">Todos os Status</option>
+                <option value="Agendado" {% if filtros.get('status') == 'Agendado' %}selected{% endif %}>Agendado</option>
+                <option value="Confirmado" {% if filtros.get('status') == 'Confirmado' %}selected{% endif %}>Confirmado</option>
+                <option value="Realizado" {% if filtros.get('status') == 'Realizado' %}selected{% endif %}>Realizado</option>
+                <option value="Cancelado" {% if filtros.get('status') == 'Cancelado' %}selected{% endif %}>Cancelado</option>
+                <option value="Não Compareceu" {% if filtros.get('status') == 'Não Compareceu' %}selected{% endif %}>Não Compareceu</option> {# Adicionado #}
+            </select>
+        </div>
+        <div class="col-md-auto">
+            <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+        </div>
+        <div class="col-md-auto ms-md-auto">
+             <a href="{{ url_for('exportar_excel') }}" class="btn btn-success" title="Exportar para Excel"><i class="fas fa-file-excel"></i> Excel</a>
+             <a href="{{ url_for('exportar_pdf') }}" class="btn btn-danger" title="Exportar para PDF"><i class="fas fa-file-pdf"></i> PDF</a>
+        </div>
+    </form>
+
+    {# Tabela de Agendamentos #}
+    <div class="table-responsive card card-light shadow-sm"> {# Adicionado card-light/dark #}
+        <table class="table table-bordered table-hover table-striped mb-0"> {# Adicionado mb-0 #}
+            <thead class="table-light"> {# Usar table-light/table-dark para tema #}
+                <tr>
+                    <th>Paciente</th>
+                    <th>Serviço</th>
+                    <th>Data</th>
+                    <th>Hora</th>
+                    <th>Status</th>
+                    <th>Observações</th>
+                    <th>Ações</th> {# Cabeçalho correto para a coluna de ações #}
+                </tr>
+            </thead>
+            <tbody>
+                {# Loop sobre os agendamentos #}
+                {% for agendamento in agendamentos_lista %}
+                <tr>
+                    {# Colunas de dados #}
+                    <td>
+                        <a href="{{ url_for('detalhes_paciente', paciente_id=agendamento.paciente_id) }}" class="link-body-emphasis text-decoration-none">
+                            {{ agendamento.nome }}
+                        </a>
+                    </td>
+                    <td>{{ agendamento.servico }}</td>
+                    <td>{{ agendamento.data_formatada }}</td>
+                    <td>{{ agendamento.hora_formatada | default('N/A') }}</td> {# Adicionado default #}
+                    <td>
+                        {# Badge de Status #}
+                        {% set status_lower = agendamento.status | lower %}
+                        {% if 'agendado' in status_lower %}
+                            <span class="badge text-bg-info">{{ agendamento.status }}</span> {# Usar text-bg-* #}
+                        {% elif 'confirmado' in status_lower %}
+                            <span class="badge text-bg-primary">{{ agendamento.status }}</span>
+                        {% elif 'realizado' in status_lower %}
+                             <span class="badge text-bg-success">{{ agendamento.status }}</span>
+                        {% elif 'cancelado' in status_lower %}
+                             <span class="badge text-bg-danger">{{ agendamento.status }}</span>
+                         {% elif 'não compareceu' in status_lower %}
+                             <span class="badge text-bg-warning">{{ agendamento.status }}</span> {# Amarelo para não compareceu #}
+                        {% else %}
+                             <span class="badge text-bg-secondary">{{ agendamento.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ agendamento.observacoes | default('-', true) }}</td>
+
+                    {# ***** COLUNA DE AÇÕES CORRIGIDA ***** #}
+                    <td>
+                        <div class="dropdown">
+                            <button class="btn btn-secondary btn-sm dropdown-toggle" type="button" id="dropdownMenuButton-{{ agendamento.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                Ações
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton-{{ agendamento.id }}">
+                                {# 1. Link para Editar #}
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('editar_agendamento', id=agendamento.id) }}">
+                                        <i class="fas fa-edit fa-fw me-2"></i>Editar
+                                    </a>
+                                </li>
+
+                                {# Divisor #}
+                                <li><hr class="dropdown-divider"></li>
+
+                                {# 2. Formulários para Mudar Status (usando POST) #}
+                                {# Confirmar #}
+                                {% if agendamento.status == 'Agendado' %}
+                                <li>
+                                    <form action="{{ url_for('atualizar_status_agendamento', id=agendamento.id) }}" method="POST" class="d-inline">
+                                        <input type="hidden" name="novo_status" value="Confirmado">
+                                        <button type="submit" class="dropdown-item">
+                                            <i class="fas fa-check-circle fa-fw me-2 text-primary"></i>Confirmar
+                                        </button>
+                                    </form>
+                                </li>
+                                {% endif %}
+
+                                {# Realizado #}
+                                {% if agendamento.status == 'Confirmado' or agendamento.status == 'Agendado' %} {# Pode marcar como realizado direto #}
+                                <li>
+                                    <form action="{{ url_for('atualizar_status_agendamento', id=agendamento.id) }}" method="POST" class="d-inline">
+                                        <input type="hidden" name="novo_status" value="Realizado">
+                                        <button type="submit" class="dropdown-item">
+                                            <i class="fas fa-check-double fa-fw me-2 text-success"></i>Marcar como Realizado
+                                        </button>
+                                    </form>
+                                </li>
+                                {% endif %}
+
+                                {# Não Compareceu #}
+                                {% if agendamento.status == 'Confirmado' or agendamento.status == 'Agendado' %}
+                                <li>
+                                    <form action="{{ url_for('atualizar_status_agendamento', id=agendamento.id) }}" method="POST" class="d-inline">
+                                        <input type="hidden" name="novo_status" value="Não Compareceu">
+                                        <button type="submit" class="dropdown-item">
+                                            <i class="fas fa-user-slash fa-fw me-2 text-warning"></i>Não Compareceu
+                                        </button>
+                                    </form>
+                                </li>
+                                {% endif %}
+
+                                {# Reagendar (Voltar para Agendado) #}
+                                {% if agendamento.status == 'Cancelado' or agendamento.status == 'Não Compareceu' %}
+                                <li>
+                                    <form action="{{ url_for('atualizar_status_agendamento', id=agendamento.id) }}" method="POST" class="d-inline">
+                                        <input type="hidden" name="novo_status" value="Agendado">
+                                        <button type="submit" class="dropdown-item">
+                                            <i class="fas fa-calendar-day fa-fw me-2 text-info"></i>Reverter para Agendado
+                                        </button>
+                                    </form>
+                                </li>
+                                {% endif %}
+
+                                {# Cancelar #}
+                                {% if agendamento.status != 'Cancelado' and agendamento.status != 'Realizado' %}
+                                <li>
+                                    <form action="{{ url_for('atualizar_status_agendamento', id=agendamento.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Tem certeza que deseja cancelar este agendamento?');">
+                                        <input type="hidden" name="novo_status" value="Cancelado">
+                                        <button type="submit" class="dropdown-item text-danger">
+                                            <i class="fas fa-times-circle fa-fw me-2"></i>Cancelar Agendamento
+                                        </button>
+                                    </form>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </td>
+                    {# ***** FIM DA COLUNA DE AÇÕES CORRIGIDA ***** #}
+
+                </tr>
+                {% else %}
+                {# Mensagem se a lista estiver vazia #}
+                <tr>
+                    <td colspan="7" class="text-center fst-italic text-muted py-3">Nenhum agendamento encontrado com os filtros aplicados.</td> {# Colspan 7 #}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{# Bloco scripts vazio #}
+{% block scripts %}
+{{ super() }}
+{% endblock %}
