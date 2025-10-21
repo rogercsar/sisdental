@@ -39,7 +39,7 @@ export default function Login() {
             <div className="card-body p-4">
               <div className="text-center mb-3">
                 <i className="fas fa-tooth fa-2x text-primary"></i>
-                <h4 className="mt-2 mb-0">Login (Staff)</h4>
+                <h4 className="mt-2 mb-0">Login</h4>
                 <p className="text-muted small">Acesse o painel administrativo</p>
               </div>
               {error && <div className="alert alert-danger">{error}</div>}

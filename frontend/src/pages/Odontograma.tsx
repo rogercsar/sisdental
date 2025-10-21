@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { getSupabase } from '../lib/supabase';
 
@@ -40,6 +40,46 @@ const formatCurrency = (value: any) => {
   catch { return String(value); }
 };
 
+// Helpers: quadrant, status e cores por tipo de tratamento
+const toothQuadrant = (n: number) => {
+  const q = Math.floor(n / 10);
+  return q > 4 ? (q - 4) : q; // infantil: 5..8 -> 1..4
+};
+
+const parseDate = (s: string | null) => {
+  if (!s) return 0;
+  const dt = new Date(s);
+  return isNaN(dt.getTime()) ? 0 : dt.getTime();
+};
+
+const tipoCategoria = (t: string | null | undefined): string => {
+  if (!t) return 'outro';
+  const s = t.toLowerCase();
+  if (s.includes('resta')) return 'restauracao';
+  if (s.includes('endo') || s.includes('canal')) return 'endodontia';
+  if (s.includes('extra') || s.includes('exo')) return 'exodontia';
+  if (s.includes('limp') || s.includes('profil')) return 'profilaxia';
+  if (s.includes('orto') || s.includes('aparelho')) return 'ortodontia';
+  if (s.includes('perio') || s.includes('rasp')) return 'periodontia';
+  if (s.includes('prot') || s.includes('coroa') || s.includes('ponte')) return 'protese';
+  if (s.includes('clare')) return 'clareamento';
+  if (s.includes('consulta') || s.includes('exame')) return 'consulta';
+  return 'outro';
+};
+
+const corPorCategoria: Record<string, string> = {
+  restauracao: '#f9d46b', // amarelo suave
+  endodontia: '#a78bfa', // roxo
+  exodontia: '#fca5a5', // vermelho claro
+  profilaxia: '#93c5fd', // azul claro
+  ortodontia: '#f472b6', // rosa
+  periodontia: '#f59e0b', // laranja
+  protese: '#b6b1a4', // cinza quente
+  clareamento: '#fde68a', // creme
+  consulta: '#c7d2fe', // lavanda
+  outro: '#e5e7eb', // cinza neutro
+};
+
 const Odontograma: React.FC = () => {
   const { pacienteId } = useParams();
   const supabase = useMemo(() => getSupabase(), []);
@@ -48,7 +88,22 @@ const Odontograma: React.FC = () => {
   const [tratamentos, setTratamentos] = useState<Tratamento[]>([]);
   const [selectedTooth, setSelectedTooth] = useState<number | null>(null);
   const [arcada, setArcada] = useState<'adulta' | 'infantil'>('adulta');
-
+  const archesRef = useRef<HTMLDivElement>(null);
+  const [archAmp, setArchAmp] = useState(14);
+  const [archSmooth, setArchSmooth] = useState(1);
+  
+  useEffect(() => {
+    const updateAmp = () => {
+      const w = archesRef.current?.clientWidth ?? window.innerWidth;
+      const dynamic = Math.max(8, Math.min(18, Math.round(w / 60)));
+      setArchAmp(dynamic);
+      const smooth = w < 480 ? 0.6 : w < 768 ? 0.8 : 1.0;
+      setArchSmooth(smooth);
+    };
+    updateAmp();
+    window.addEventListener('resize', updateAmp);
+    return () => window.removeEventListener('resize', updateAmp);
+  }, [arcada]);
   const [tipoTratamento, setTipoTratamento] = useState('');
   const [servicos, setServicos] = useState<Servico[]>([]);
   const [servicoId, setServicoId] = useState<number | 'manual' | ''>('');
@@ -110,6 +165,30 @@ const Odontograma: React.FC = () => {
 
   const tratamentosDoDente = (numero: number | null) => tratamentos.filter(t => t.dente_numero === numero);
 
+  // Último tratamento, status, cor por tipo e tooltip
+  const ultimoTratamento = (numero: number) => {
+    const arr = tratamentosDoDente(numero);
+    if (arr.length === 0) return null;
+    return arr.sort((a, b) => parseDate(b.data_tratamento) - parseDate(a.data_tratamento) || (b.id - a.id))[0];
+  };
+  const statusDoDente = (numero: number): 'none'|'andamento'|'concluido' => {
+    const lt = ultimoTratamento(numero);
+    if (!lt) return 'none';
+    return lt.concluido ? 'concluido' : 'andamento';
+  };
+  const corTipoDoDente = (numero: number) => {
+    const lt = ultimoTratamento(numero);
+    const cat = tipoCategoria(lt?.tipo_tratamento);
+    return corPorCategoria[cat];
+  };
+  const tooltipDoDente = (numero: number) => {
+    const lt = ultimoTratamento(numero);
+    if (!lt) return `Dente ${numero}: sem tratamentos registrados`;
+    const sts = lt.concluido ? 'Concluído' : 'Em andamento';
+    const dt = lt.data_tratamento ? new Date(lt.data_tratamento).toLocaleDateString('pt-BR') : '-';
+    return `Dente ${numero}: Último ${dt} • ${lt.tipo_tratamento ?? '—'} • ${sts}`;
+  };
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!supabase) { setError('Supabase não configurado'); return; }
@@ -164,8 +243,8 @@ const Odontograma: React.FC = () => {
       </div>
       {error && <div className="alert alert-danger">{error}</div>}
 
-      {/* Grid de dentes */}
-      <div className="card mb-4 shadow-sm">
+      {/* Arcadas com dentes estilizados */}
+      <div className="card mb-4 shadow-sm odontograma-card">
         <div className="card-body">
           <h5 className="card-title">Selecione um dente</h5>
           <div className="d-flex gap-2 mb-3">
@@ -184,21 +263,59 @@ const Odontograma: React.FC = () => {
               Arcada Infantil
             </button>
           </div>
-          <div className="mb-3">
-            {(arcada === 'adulta' ? [adultRow1, adultRow2, adultRow3, adultRow4] : [childRow1, childRow2, childRow3, childRow4]).map((row, idx) => (
-              <div key={idx} className="d-flex flex-wrap gap-2 mb-2">
-                {row.map((n) => (
-                  <button
-                    key={n}
-                    type="button"
-                    className={`btn ${selectedTooth === n ? 'btn-primary' : 'btn-outline-primary'}`}
-                    onClick={() => setSelectedTooth(n)}
-                  >{n}</button>
-                ))}
+
+          {(() => {
+            const upper = arcada === 'adulta' ? [...adultRow1, ...adultRow2] : [...childRow1, ...childRow2];
+            const lower = arcada === 'adulta' ? [...adultRow3, ...adultRow4] : [...childRow3, ...childRow4];
+            return (
+              <div className="odontograma-arches" ref={archesRef}>
+                <div className="odontograma-arch-label">Arcada Superior {arcada === 'adulta' ? '(Q1 11–18 | Q2 21–28)' : '(Q5 51–55 | Q6 61–65)'}</div>
+                <div className="odontograma-arch upper mb-3">
+                  {upper.map((n, i) => (
+                    <Tooth
+                      key={n}
+                      number={n}
+                      arch="upper"
+                      index={i}
+                      total={upper.length}
+                      amp={archAmp}
+                      infantil={arcada==='infantil'}
+                      status={statusDoDente(n)}
+                      typeColor={corTipoDoDente(n)}
+                      quadrant={toothQuadrant(n)}
+                      smooth={archSmooth}
+                      tooltip={tooltipDoDente(n)}
+                      selected={selectedTooth === n}
+                      onClick={() => setSelectedTooth(n)}
+                    />
+                  ))}
+                </div>
+                <div className="odontograma-arch-label">Arcada Inferior {arcada === 'adulta' ? '(Q3 31–38 | Q4 41–48)' : '(Q7 71–75 | Q8 81–85)'}</div>
+                <div className="odontograma-arch lower">
+                  {lower.map((n, i) => (
+                    <Tooth
+                      key={n}
+                      number={n}
+                      arch="lower"
+                      index={i}
+                      total={lower.length}
+                      amp={archAmp}
+                      infantil={arcada==='infantil'}
+                      status={statusDoDente(n)}
+                      typeColor={corTipoDoDente(n)}
+                      quadrant={toothQuadrant(n)}
+                      smooth={archSmooth}
+                      tooltip={tooltipDoDente(n)}
+                      selected={selectedTooth === n}
+                      onClick={() => setSelectedTooth(n)}
+                    />
+                  ))}
+                </div>
               </div>
-            ))}
-          </div>
-          <p className="text-muted">FDI adulto (11–18, 21–28, 31–38, 41–48) e infantil (51–55, 61–65, 71–75, 81–85).</p>
+            );
+          })()}
+
+          <p className="text-muted mt-2">FDI adulto (11–18, 21–28, 31–38, 41–48) e infantil (51–55, 61–65, 71–75, 81–85).</p>
         </div>
       </div>
 
@@ -308,10 +425,17 @@ const Odontograma: React.FC = () => {
                       filtroStatus === 'todos' ? true : (filtroStatus === 'concluido' ? !!t.concluido : !t.concluido)
                     )).map(t => (
                       <tr key={t.id}>
-                        <td>{t.data_tratamento ?? '-'}</td>
-                        <td>{t.tipo_tratamento ?? '-'}</td>
+                        <td>{t.data_tratamento ? new Date(t.data_tratamento).toLocaleDateString('pt-BR') : '-'}</td>
+                        <td>
+                          <span className="type-swatch" style={{ backgroundColor: corPorCategoria[tipoCategoria(t.tipo_tratamento)] }} />
+                          {t.tipo_tratamento ?? '-'}
+                        </td>
                         <td>{formatCurrency(t.valor)}</td>
-                        <td>{t.concluido ? (<span className="badge bg-success">Concluído</span>) : (<span className="badge bg-warning text-dark">Em Andamento</span>)}</td>
+                        <td>
+                          <span className={`badge ${t.concluido ? 'badge-status-concluido' : 'badge-status-andamento'}`}>
+                            {t.concluido ? 'Concluído' : 'Em Andamento'}
+                          </span>
+                        </td>
                         <td>{t.observacoes ?? '-'}</td>
                         <td>
                           <button className="btn btn-sm btn-outline-primary me-2" onClick={() => toggleConcluido(t)}>
@@ -350,11 +474,18 @@ const Odontograma: React.FC = () => {
                 <tbody>
                   {tratamentos.map(t => (
                     <tr key={t.id}>
-                      <td>{t.data_tratamento ?? '-'}</td>
+                      <td>{t.data_tratamento ? new Date(t.data_tratamento).toLocaleDateString('pt-BR') : '-'}</td>
                       <td>{t.dente_numero ?? '-'}</td>
-                      <td>{t.tipo_tratamento ?? '-'}</td>
+                      <td>
+                        <span className="type-swatch" style={{ backgroundColor: corPorCategoria[tipoCategoria(t.tipo_tratamento)] }} />
+                        {t.tipo_tratamento ?? '-'}
+                      </td>
                       <td>{formatCurrency(t.valor)}</td>
-                      <td>{t.concluido ? (<span className="badge bg-success">Concluído</span>) : (<span className="badge bg-warning text-dark">Em Andamento</span>)}</td>
+                      <td>
+                        <span className={`badge ${t.concluido ? 'badge-status-concluido' : 'badge-status-andamento'}`}>
+                          {t.concluido ? 'Concluído' : 'Em Andamento'}
+                        </span>
+                      </td>
                       <td>{t.observacoes ?? '-'}</td>
                     </tr>
                   ))}
@@ -371,3 +502,62 @@ const Odontograma: React.FC = () => {
 };
 
 export default Odontograma;
+
+// Componente de dente estilizado com SVG
+const Tooth: React.FC<{ number: number; selected?: boolean; onClick?: () => void; arch?: 'upper'|'lower'; index?: number; total?: number; amp?: number; infantil?: boolean; status?: 'none'|'andamento'|'concluido'; typeColor?: string; quadrant?: number; smooth?: number; tooltip?: string; }> = ({ number, selected, onClick, arch = 'upper', index = 0, total = 1, amp = 14, infantil = false, status = 'none', typeColor = '#e5e7eb', quadrant = 1, smooth = 1, tooltip }) => {
+  const t = total > 1 ? (index / (total - 1)) : 0;
+  const s = Math.pow(Math.sin(t * Math.PI), smooth);
+  const archScale = arch === 'lower' ? 0.94 : 1.0; // arco inferior levemente mais suave
+  const quadrantScale = quadrant === 2 || quadrant === 3 ? 0.96 : 1.0; // leve suavização nos quadrantes esquerdos
+  const offset = s * amp * archScale * quadrantScale;
+  const translateY = arch === 'upper' ? -offset : offset;
+
+  const d = number % 10;
+  const size = (() => {
+    if (d === 1 || d === 2) return { w: 32, h: 36 }; // incisivos mais estreitos e coroa mais reta
+    if (d === 3) return { w: 34, h: 38 }; // canino ligeiramente mais alto
+    if (d === 4 || d === 5) return { w: 34, h: 36 }; // pré-molares
+    if (d === 6 || d === 7) return { w: 36, h: 36 }; // molares mais largos
+    return { w: 35, h: 34 }; // terceiros molares
+  })();
+
+  const stroke = selected ? '#0d6efd' : (infantil ? '#0dcaf0' : '#6c757d');
+  const fillColor = status === 'none' ? '#ffffff' : (typeColor || '#cfe2ff');
+  const fillOpacity = status === 'andamento' ? 0.6 : (status === 'concluido' ? 0.85 : 1);
+
+
+
+  return (
+    <button
+      type="button"
+      className={`tooth-btn ${selected ? 'tooth-selected' : ''}`}
+      onClick={onClick}
+      aria-label={`Dente ${number}`}
+      title={tooltip}
+      style={{ transform: `translateY(${translateY}px)` }}
+    >
+      <svg className="tooth-svg" viewBox="0 0 64 64" width={size.w} height={size.h} aria-hidden="true">
+        <path
+          d="M32 6c-8 0-14 6-15 13-1 6 1 12 3 18 2 6 4 12 6 18 1 3 3 5 6 5s5-2 6-5c2-6 4-12 6-18 2-6 4-12 3-18C46 12 40 6 32 6z"
+          fill={fillColor}
+          fillOpacity={fillOpacity}
+          stroke={stroke}
+          strokeWidth="2"
+        />
+        {(d === 1 || d === 2) && (
+          <path d="M22 16c3-4 17-4 20 0" stroke={stroke} strokeWidth="1.5" fill="none" opacity="0.55" />
+        )}
+        {d === 3 && (
+          <path d="M32 14c0 8 0 8 0 16" stroke={stroke} strokeWidth="1.2" fill="none" opacity="0.5" />
+        )}
+        {(d === 6 || d === 7 || d === 8) && (
+          <>
+            <path d="M18 24c8 6 20 6 28 0" stroke={stroke} strokeWidth="1.2" fill="none" opacity="0.5" />
+            <path d="M18 28c8 6 20 6 28 0" stroke={stroke} strokeWidth="1.2" fill="none" opacity="0.35" />
+          </>
+        )}
+      </svg>
+      <span className="tooth-label">{number}</span>
+    </button>
+  );
+};

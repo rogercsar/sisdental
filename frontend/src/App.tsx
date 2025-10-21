@@ -16,6 +16,7 @@ import PortalHome from './pages/PortalHome'
 import DocumentosPaciente from './pages/DocumentosPaciente'
 import Layout from './components/Layout'
 import { RequireAuth, RequirePortal } from './components/RouteGuards'
+import ImportarDados from './pages/ImportarDados'
 // Remover import do App.css
 
 function App() {
@@ -44,7 +45,8 @@ function App() {
   
       {/* Financeiro */}
       <Route path="/financeiro" element={<RequireAuth><Layout><Financeiro /></Layout></RequireAuth>} />
-  
+      {/* Importar Dados */}
+      <Route path="/importar" element={<RequireAuth><Layout><ImportarDados /></Layout></RequireAuth>} />
       {/* Portal do Paciente */}
       <Route path="/portal/home" element={<RequirePortal><Layout><PortalHome /></Layout></RequirePortal>} />
     </Routes>

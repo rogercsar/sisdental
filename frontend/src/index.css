@@ -134,3 +134,53 @@ body, html {
 #sidebar .btn-outline-light:hover { background-color: rgba(255,255,255,0.2); }
 
 /* Dropdown da busca no header — já definido acima com z-index */
+
+/* Odontograma */
+.odontograma-card { overflow: hidden; }
+.odontograma-arches { display: flex; flex-direction: column; gap: 12px; align-items: center; }
+.odontograma-arch { display: flex; justify-content: center; align-items: flex-end; gap: 8px; flex-wrap: nowrap; }
+.odontograma-arch.upper { padding-top: 8px; }
+.odontograma-arch.lower { padding-bottom: 8px; }
+
+.tooth-btn { background: transparent; border: none; padding: 4px 2px; display: flex; flex-direction: column; align-items: center; cursor: pointer; }
+.tooth-btn:focus { outline: none; }
+.tooth-svg { width: 36px; height: 36px; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.1)); }
+.tooth-selected .tooth-svg { filter: drop-shadow(0 0 6px rgba(13,110,253,0.4)); }
+.tooth-label { font-size: 0.75rem; color: #6c757d; margin-top: 2px; }
+
+@media (max-width: 768px) {
+  .odontograma-arch { gap: 6px; }
+  .tooth-svg { width: 30px; height: 30px; }
+  .tooth-label { font-size: 0.7rem; }
+}
+
+/* Odontograma legend and labels */
+.odontograma-arch { overflow-x: auto; }
+.odontograma-arch-label { font-size: 0.85rem; color: #6c757d; margin-bottom: 4px; }
+.odontograma-legend { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.odontograma-legend .legend-item { font-size: 0.85rem; color: #6c757d; display: flex; align-items: center; }
+.odontograma-legend .legend-swatch { width: 14px; height: 14px; border: 1px solid #adb5bd; border-radius: 3px; margin-right: 6px; display: inline-block; }
+.odontograma-legend .legend-swatch.andamento { background: #fff6cc; }
+.odontograma-legend .legend-swatch.concluido { background: #e8f7e9; }
+.odontograma-legend .legend-swatch.infantil { background: #e3f7ff; border-color: #0dcaf0; }
+
+/* Unificação visual de status em badges */
+.badge-status-andamento {
+  background-color: #facc15; /* amarelo */
+  color: #212529;
+}
+.badge-status-concluido {
+  background-color: #34d399; /* verde */
+  color: #ffffff;
+}
+
+/* Indicador de tipo de tratamento */
+.type-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+  border: 1px solid rgba(0,0,0,0.15);
+}

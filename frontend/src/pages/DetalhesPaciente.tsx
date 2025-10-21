@@ -7,6 +7,25 @@ interface Tratamento { id: number; data_tratamento?: string | null; dente_numero
 interface Lancamento { id: number; data_vencimento?: string | null; descricao?: string | null; valor?: number | null; status?: string | null; data_pagamento?: string | null; }
 interface Agendamento { id: number; data?: string | null; hora?: string | null; servico?: string | null; status?: string | null; }
 
+// Helpers locais para categorização de tratamento e paleta de cores
+const tipoCategoriaLocal = (tipo?: string | null) => {
+  const t = (tipo || '').toLowerCase();
+  if (t.includes('rest')) return 'restauracao';
+  if (t.includes('endo') || t.includes('canal')) return 'endodontia';
+  if (t.includes('extran') || t.includes('extra')) return 'extracao';
+  if (t.includes('coroa') || t.includes('prot') || t.includes('lente')) return 'protetico';
+  if (t.includes('peri') || t.includes('geng')) return 'periodontal';
+  return 'outros';
+};
+const corPorCategoriaLocal: Record<string, string> = {
+  restauracao: '#60a5fa',
+  endodontia: '#a78bfa',
+  extracao: '#ef4444',
+  protetico: '#f59e0b',
+  periodontal: '#10b981',
+  outros: '#6b7280',
+};
+
 const DetalhesPaciente: React.FC = () => {
   const { id } = useParams();
   const supabase = useMemo(() => getSupabase(), []);
@@ -154,15 +173,18 @@ const DetalhesPaciente: React.FC = () => {
                     <tbody>
                       {tratamentos.map((t) => (
                         <tr key={t.id}>
-                          <td>{t.data_tratamento || 'N/A'}</td>
+                          <td>{t.data_tratamento ? new Date(t.data_tratamento).toLocaleDateString('pt-BR') : 'N/A'}</td>
                           <td>{t.dente_numero ?? '-'}</td>
-                          <td>{t.tipo_tratamento ?? '-'}</td>
+                          <td>
+                            <span className="type-swatch" style={{ backgroundColor: corPorCategoriaLocal[tipoCategoriaLocal(t.tipo_tratamento)] }} />
+                            {t.tipo_tratamento ?? '-'}
+                          </td>
                           <td>{formatCurrency(t.valor)}</td>
-                          <td>{t.concluido ? (
-                            <span className="badge bg-success">Concluído</span>
-                          ) : (
-                            <span className="badge bg-warning text-dark">Em Andamento</span>
-                          )}</td>
+                          <td>
+                            <span className={`badge ${t.concluido ? 'badge-status-concluido' : 'badge-status-andamento'}`}>
+                              {t.concluido ? 'Concluído' : 'Em Andamento'}
+                            </span>
+                          </td>
                           <td>{t.observacoes ?? '-'}</td>
                         </tr>
                       ))}

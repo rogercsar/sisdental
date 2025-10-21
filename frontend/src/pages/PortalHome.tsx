@@ -21,6 +21,25 @@ const formatCurrency = (value: any) => {
   try { return Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); } catch { return String(value); }
 };
 
+// Helpers locais para categoria/cores de tratamento na listagem
+const tipoCategoriaLocal = (tipo?: string | null) => {
+  const t = (tipo || '').toLowerCase();
+  if (t.includes('rest')) return 'restauracao';
+  if (t.includes('endo') || t.includes('canal')) return 'endodontia';
+  if (t.includes('extran') || t.includes('extra')) return 'extracao';
+  if (t.includes('coroa') || t.includes('prot') || t.includes('lente')) return 'protetico';
+  if (t.includes('peri') || t.includes('geng')) return 'periodontal';
+  return 'outros';
+};
+const corPorCategoriaLocal: Record<string, string> = {
+  restauracao: '#60a5fa',
+  endodontia: '#a78bfa',
+  extracao: '#ef4444',
+  protetico: '#f59e0b',
+  periodontal: '#10b981',
+  outros: '#6b7280',
+};
+
 const PortalHome: React.FC = () => {
   const supabase = useMemo(() => getSupabase(), []);
   const navigate = useNavigate();
@@ -171,8 +190,15 @@ const PortalHome: React.FC = () => {
                             <tr key={t.id}>
                               <td>{t.data_tratamento ?? '-'}</td>
                               <td>{t.dente_numero ?? '-'}</td>
-                              <td>{t.tipo_tratamento ?? '-'}</td>
-                              <td>{t.concluido ? (<span className="badge bg-success">Concluído</span>) : (<span className="badge bg-warning text-dark">Em andamento</span>)}</td>
+                              <td>
+                                <span className="type-swatch" style={{ backgroundColor: corPorCategoriaLocal[tipoCategoriaLocal(t.tipo_tratamento)] }} />
+                                {t.tipo_tratamento ?? '-'}
+                              </td>
+                              <td>
+                                <span className={`badge ${t.concluido ? 'badge-status-concluido' : 'badge-status-andamento'}`}>
+                                  {t.concluido ? 'Concluído' : 'Em Andamento'}
+                                </span>
+                              </td>
                             </tr>
                           ))}
                         </tbody>
