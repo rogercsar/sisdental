@@ -91,6 +91,7 @@ const Odontograma: React.FC = () => {
   const archesRef = useRef<HTMLDivElement>(null);
   const [archAmp, setArchAmp] = useState(14);
   const [archSmooth, setArchSmooth] = useState(1);
+  const [lowerScale, setLowerScale] = useState(1);
   
   useEffect(() => {
     const updateAmp = () => {
@@ -99,6 +100,16 @@ const Odontograma: React.FC = () => {
       setArchAmp(dynamic);
       const smooth = w < 480 ? 0.6 : w < 768 ? 0.8 : 1.0;
       setArchSmooth(smooth);
+
+      // Ajuste dinâmico de escala para a arcada inferior para evitar scroll horizontal
+      const numLower = arcada === 'adulta' ? (adultRow3.length + adultRow4.length) : (childRow3.length + childRow4.length);
+      const avgWidth = 36; // largura média do SVG do dente
+      const gapLower = 6; // gap definido em CSS para a arcada inferior
+      const paddingLR = 4; // 2px esquerda + 2px direita por botão
+      const estimatedLowerWidth = numLower * (avgWidth + paddingLR) + (numLower - 1) * gapLower;
+      const maxWidth = (archesRef.current?.clientWidth ?? window.innerWidth) - 24; // margem de segurança
+      const scale = Math.min(1, maxWidth / estimatedLowerWidth);
+      setLowerScale(scale > 0 ? scale : 1);
     };
     updateAmp();
     window.addEventListener('resize', updateAmp);
@@ -269,9 +280,6 @@ const Odontograma: React.FC = () => {
               Arcada Infantil
             </button>
           </div>
-          <div className="odontograma-fdi-note mb-3">
-            FDI adulto (11–18, 21–28, 31–38, 41–48) e infantil (51–55, 61–65, 71–75, 81–85).
-          </div>
 
           {(() => {
             const upper = arcada === 'adulta' ? [...adultRow1, ...adultRow2] : [...childRow1, ...childRow2];
@@ -317,6 +325,7 @@ const Odontograma: React.FC = () => {
                       tooltip={tooltipDoDente(n)}
                       selected={selectedTeeth.includes(n)}
                       onClick={() => toggleTooth(n)}
+                      sizeScale={lowerScale}
                     />
                   ))}
                 </div>
@@ -522,7 +531,7 @@ const Odontograma: React.FC = () => {
 export default Odontograma;
 
 // Componente de dente estilizado com SVG
-const Tooth: React.FC<{ number: number; selected?: boolean; onClick?: () => void; arch?: 'upper'|'lower'; index?: number; total?: number; amp?: number; infantil?: boolean; status?: 'none'|'andamento'|'concluido'; typeColor?: string; quadrant?: number; smooth?: number; tooltip?: string; }> = ({ number, selected, onClick, arch = 'upper', index = 0, total = 1, amp = 14, infantil = false, status = 'none', typeColor = '#e5e7eb', quadrant = 1, smooth = 1, tooltip }) => {
+const Tooth: React.FC<{ number: number; selected?: boolean; onClick?: () => void; arch?: 'upper'|'lower'; index?: number; total?: number; amp?: number; infantil?: boolean; status?: 'none'|'andamento'|'concluido'; typeColor?: string; quadrant?: number; smooth?: number; tooltip?: string; sizeScale?: number; }> = ({ number, selected, onClick, arch = 'upper', index = 0, total = 1, amp = 14, infantil = false, status = 'none', typeColor = '#e5e7eb', quadrant = 1, smooth = 1, tooltip, sizeScale = 1 }) => {
   const t = total > 1 ? (index / (total - 1)) : 0;
   const s = Math.pow(Math.sin(t * Math.PI), smooth);
   const archScale = arch === 'lower' ? 0.94 : 1.0; // arco inferior levemente mais suave
@@ -543,7 +552,8 @@ const Tooth: React.FC<{ number: number; selected?: boolean; onClick?: () => void
   const fillColor = status === 'none' ? '#ffffff' : (typeColor || '#cfe2ff');
   const fillOpacity = status === 'andamento' ? 0.6 : (status === 'concluido' ? 0.85 : 1);
 
-
+  const w = Math.round(size.w * sizeScale);
+  const h = Math.round(size.h * sizeScale);
 
   return (
     <button
@@ -554,7 +564,7 @@ const Tooth: React.FC<{ number: number; selected?: boolean; onClick?: () => void
       title={tooltip}
       style={{ transform: `translateY(${translateY}px)` }}
     >
-      <svg className="tooth-svg" viewBox="0 0 64 64" width={size.w} height={size.h} aria-hidden="true">
+      <svg className="tooth-svg" viewBox="0 0 64 64" width={w} height={h} aria-hidden="true">
         <path
           d="M32 6c-8 0-14 6-15 13-1 6 1 12 3 18 2 6 4 12 6 18 1 3 3 5 6 5s5-2 6-5c2-6 4-12 6-18 2-6 4-12 3-18C46 12 40 6 32 6z"
           fill={fillColor}
