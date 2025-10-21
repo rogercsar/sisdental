@@ -86,7 +86,7 @@ const Odontograma: React.FC = () => {
 
   const [paciente, setPaciente] = useState<Paciente | null>(null);
   const [tratamentos, setTratamentos] = useState<Tratamento[]>([]);
-  const [selectedTooth, setSelectedTooth] = useState<number | null>(null);
+  const [selectedTeeth, setSelectedTeeth] = useState<number[]>([]);
   const [arcada, setArcada] = useState<'adulta' | 'infantil'>('adulta');
   const archesRef = useRef<HTMLDivElement>(null);
   const [archAmp, setArchAmp] = useState(14);
@@ -164,6 +164,7 @@ const Odontograma: React.FC = () => {
   }, [supabase]);
 
   const tratamentosDoDente = (numero: number | null) => tratamentos.filter(t => t.dente_numero === numero);
+  const tratamentosDosSelecionados = () => tratamentos.filter(t => t.dente_numero != null && selectedTeeth.includes(t.dente_numero));
 
   // Último tratamento, status, cor por tipo e tooltip
   const ultimoTratamento = (numero: number) => {
@@ -189,17 +190,22 @@ const Odontograma: React.FC = () => {
     return `Dente ${numero}: Último ${dt} • ${lt.tipo_tratamento ?? '—'} • ${sts}`;
   };
 
+  const toggleTooth = (n: number) => {
+    setSelectedTeeth(prev => prev.includes(n) ? prev.filter(x => x !== n) : [...prev, n]);
+  };
+  const clearSelection = () => setSelectedTeeth([]);
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!supabase) { setError('Supabase não configurado'); return; }
-    if (!paciente || !selectedTooth) { setError('Selecione um dente para registrar o tratamento.'); return; }
+    if (!paciente || selectedTeeth.length !== 1) { setError('Selecione um único dente para registrar o tratamento.'); return; }
     setError(null);
     try {
       const { data: inserted, error: insErr } = await supabase
         .from('odontograma_tratamentos')
         .insert({
           paciente_id: paciente.id,
-          dente_numero: selectedTooth,
+          dente_numero: selectedTeeth[0],
           tipo_tratamento: tipoTratamento || null,
           valor: valor ? parseFloat(valor) : null,
           concluido,
@@ -246,8 +252,8 @@ const Odontograma: React.FC = () => {
       {/* Arcadas com dentes estilizados */}
       <div className="card mb-4 shadow-sm odontograma-card">
         <div className="card-body">
-          <h5 className="card-title">Selecione um dente</h5>
-          <div className="d-flex gap-2 mb-3">
+          <h5 className="card-title">Selecione dentes</h5>
+          <div className="d-flex gap-2 mb-2">
             <button
               type="button"
               className={`btn btn-sm ${arcada === 'adulta' ? 'btn-primary' : 'btn-outline-primary'}`}
@@ -262,6 +268,9 @@ const Odontograma: React.FC = () => {
             >
               Arcada Infantil
             </button>
+          </div>
+          <div className="odontograma-fdi-note mb-3">
+            FDI adulto (11–18, 21–28, 31–38, 41–48) e infantil (51–55, 61–65, 71–75, 81–85).
           </div>
 
           {(() => {
@@ -285,8 +294,8 @@ const Odontograma: React.FC = () => {
                       quadrant={toothQuadrant(n)}
                       smooth={archSmooth}
                       tooltip={tooltipDoDente(n)}
-                      selected={selectedTooth === n}
-                      onClick={() => setSelectedTooth(n)}
+                      selected={selectedTeeth.includes(n)}
+                      onClick={() => toggleTooth(n)}
                     />
                   ))}
                 </div>
@@ -306,8 +315,8 @@ const Odontograma: React.FC = () => {
                       quadrant={toothQuadrant(n)}
                       smooth={archSmooth}
                       tooltip={tooltipDoDente(n)}
-                      selected={selectedTooth === n}
-                      onClick={() => setSelectedTooth(n)}
+                      selected={selectedTeeth.includes(n)}
+                      onClick={() => toggleTooth(n)}
                     />
                   ))}
                 </div>
@@ -315,7 +324,7 @@ const Odontograma: React.FC = () => {
             );
           })()}
 
-          <p className="text-muted mt-2">FDI adulto (11–18, 21–28, 31–38, 41–48) e infantil (51–55, 61–65, 71–75, 81–85).</p>
+
         </div>
       </div>
 
@@ -327,7 +336,10 @@ const Odontograma: React.FC = () => {
             <div className="row">
               <div className="col-md-3 mb-3">
                 <label className="form-label">Dente *</label>
-                <input type="number" className="form-control" value={selectedTooth ?? ''} onChange={(e) => setSelectedTooth(Number(e.target.value)||null)} required />
+                <input type="number" className="form-control" value={selectedTeeth[0] ?? ''} onChange={(e) => {
+                  const v = Number(e.target.value);
+                  setSelectedTeeth(isNaN(v) ? [] : [v]);
+                }} required />
               </div>
               <div className="col-md-3 mb-3">
                 <label className="form-label">Data *</label>
@@ -395,10 +407,11 @@ const Odontograma: React.FC = () => {
       {/* Lista por dente selecionado */}
       <div className="card mb-4 shadow-sm">
         <div className="card-body">
-          <h5 className="card-title">Tratamentos do Dente {selectedTooth ?? '-'}</h5>
-          {selectedTooth && tratamentosDoDente(selectedTooth).length > 0 ? (
+          <h5 className="card-title">{selectedTeeth.length === 0 ? 'Nenhum dente selecionado' : selectedTeeth.length === 1 ? `Tratamentos do Dente ${selectedTeeth[0]}` : `Tratamentos dos Dentes ${selectedTeeth.join(', ')}`}</h5>
+          {(selectedTeeth.length === 1 ? tratamentosDoDente(selectedTeeth[0]) : tratamentosDosSelecionados()).length > 0 ? (
             <>
-              <div className="d-flex justify-content-end mb-2">
+              <div className="d-flex justify-content-between mb-2">
+                <div className="text-muted small">{selectedTeeth.length} selecionado(s)</div>
                 <div className="d-flex align-items-center gap-2">
                   <span className="text-muted">Filtrar:</span>
                   <select className="form-select form-select-sm" value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value as any)}>
@@ -406,6 +419,7 @@ const Odontograma: React.FC = () => {
                     <option value="concluido">Concluído</option>
                     <option value="andamento">Em Andamento</option>
                   </select>
+                  <button type="button" className="btn btn-sm btn-outline-secondary" onClick={clearSelection}>Limpar seleção</button>
                 </div>
               </div>
               <div className="table-responsive">
@@ -413,6 +427,7 @@ const Odontograma: React.FC = () => {
                   <thead>
                     <tr>
                       <th>Data</th>
+                      {selectedTeeth.length > 1 && (<th>Dente</th>)}
                       <th>Tratamento</th>
                       <th>Valor</th>
                       <th>Status</th>
@@ -421,35 +436,38 @@ const Odontograma: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {tratamentosDoDente(selectedTooth).filter(t => (
-                      filtroStatus === 'todos' ? true : (filtroStatus === 'concluido' ? !!t.concluido : !t.concluido)
-                    )).map(t => (
-                      <tr key={t.id}>
-                        <td>{t.data_tratamento ? new Date(t.data_tratamento).toLocaleDateString('pt-BR') : '-'}</td>
-                        <td>
-                          <span className="type-swatch" style={{ backgroundColor: corPorCategoria[tipoCategoria(t.tipo_tratamento)] }} />
-                          {t.tipo_tratamento ?? '-'}
-                        </td>
-                        <td>{formatCurrency(t.valor)}</td>
-                        <td>
-                          <span className={`badge ${t.concluido ? 'badge-status-concluido' : 'badge-status-andamento'}`}>
-                            {t.concluido ? 'Concluído' : 'Em Andamento'}
-                          </span>
-                        </td>
-                        <td>{t.observacoes ?? '-'}</td>
-                        <td>
-                          <button className="btn btn-sm btn-outline-primary me-2" onClick={() => toggleConcluido(t)}>
-                            {t.concluido ? 'Reabrir' : 'Concluir'}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                    {(selectedTeeth.length === 1 ? tratamentosDoDente(selectedTeeth[0]) : tratamentosDosSelecionados())
+                      .filter(t => (
+                        filtroStatus === 'todos' ? true : filtroStatus === 'concluido' ? !!t.concluido : !t.concluido
+                      ))
+                      .map(t => (
+                        <tr key={t.id}>
+                          <td>{t.data_tratamento ? new Date(t.data_tratamento).toLocaleDateString('pt-BR') : '-'}</td>
+                          {selectedTeeth.length > 1 && (<td>{t.dente_numero}</td>)}
+                          <td>
+                            <span className="type-swatch" style={{ backgroundColor: corPorCategoria[tipoCategoria(t.tipo_tratamento)] }} />
+                            {t.tipo_tratamento ?? '—'}
+                          </td>
+                          <td>{t.valor != null ? formatCurrency(t.valor) : '-'}</td>
+                          <td>
+                            <span className={`badge ${t.concluido ? 'badge-status-concluido' : 'badge-status-andamento'}`}>
+                              {t.concluido ? 'Concluído' : 'Em Andamento'}
+                            </span>
+                          </td>
+                          <td>{t.observacoes ?? '—'}</td>
+                          <td>
+                            <button className="btn btn-sm btn-outline-secondary" onClick={() => toggleConcluido(t)}>
+                              {t.concluido ? 'Marcar em andamento' : 'Marcar concluído'}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
                   </tbody>
                 </table>
               </div>
             </>
           ) : (
-            <p className="text-muted">Nenhum tratamento para o dente selecionado.</p>
+            <p className="text-muted">{selectedTeeth.length === 0 ? 'Selecione dentes para ver os tratamentos.' : 'Sem tratamentos para os dentes selecionados.'}</p>
           )}
         </div>
       </div>
