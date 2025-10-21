@@ -212,7 +212,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   setQuery('')
                   setResultsPacientes([])
                   setResultsAgendamentos([])
-                  (e.target as HTMLInputElement).blur()
+                  ;(e.target as HTMLInputElement).blur()
                   return
                 }
                 if (e.key === 'ArrowDown') {
