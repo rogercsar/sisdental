@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { getSupabase } from '../lib/supabase';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
