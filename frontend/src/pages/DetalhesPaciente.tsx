@@ -17,7 +17,7 @@ const DetalhesPaciente: React.FC = () => {
   const [agendamentosFuturos, setAgendamentosFuturos] = useState<Agendamento[]>([]);
   const [tab, setTab] = useState<'tratamentos'|'financeiro'|'agendamentos'>('tratamentos');
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     const load = async () => {

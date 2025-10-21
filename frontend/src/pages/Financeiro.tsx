@@ -32,7 +32,7 @@ const Financeiro: React.FC = () => {
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [lancamentos, setLancamentos] = useState<Lancamento[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [, setLoading] = useState<boolean>(true);
 
   // filtros
   const [pacienteIdFiltro, setPacienteIdFiltro] = useState<number | ''>('' as any);

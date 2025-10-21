@@ -47,7 +47,7 @@ const Odontograma: React.FC = () => {
   const [observacoes, setObservacoes] = useState('');
   const [data, setData] = useState(todayISO());
 
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
