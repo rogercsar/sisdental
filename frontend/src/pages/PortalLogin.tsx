@@ -52,9 +52,10 @@ const PortalLogin: React.FC = () => {
       setLoading(false);
     }
   };
-
   return (
-    <div className="container py-5 min-vh-100 d-flex align-items-center">
+    <>
+      <Link to="/login" className="btn btn-outline-primary btn-sm position-fixed top-0 end-0 m-3 z-3 btn-lift" title="Acesso Clínico">Acesso Clínico</Link>
+      <div className="container py-5 min-vh-100 d-flex align-items-center">
       <div className="row justify-content-center w-100">
         <div className="col-sm-10 col-md-8 col-lg-5">
           <div className="card shadow-sm border-0">
@@ -83,14 +84,13 @@ const PortalLogin: React.FC = () => {
                   {loading ? (<><span className="spinner-border spinner-border-sm me-2"></span>Entrando...</>) : 'Entrar'}
                 </button>
               </form>
-              <div className="mt-3 text-center">
-                <Link to="/login">Acesso Staff</Link>
-              </div>
+
             </div>
           </div>
         </div>
       </div>
     </div>
+    </>
   );
 };
 

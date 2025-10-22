@@ -32,7 +32,9 @@ export default function Login() {
   }
 
   return (
-    <div className="container py-5 min-vh-100 d-flex align-items-center">
+    <>
+      <Link to="/portal/login" className="btn btn-outline-primary btn-sm position-fixed top-0 end-0 m-3 z-3 btn-lift" title="Acesso do Paciente">Acesso do Paciente</Link>
+      <div className="container py-5 min-vh-100 d-flex align-items-center">
       <div className="row justify-content-center w-100">
         <div className="col-sm-10 col-md-8 col-lg-5">
           <div className="card shadow-sm border-0">
@@ -65,14 +67,12 @@ export default function Login() {
                 <small className="text-muted">Não tem conta?</small>
                 <div><Link to="/cadastro">Cadastre-se</Link></div>
               </div>
-              <div className="mt-2 text-center">
-                <small className="text-muted">Acesso do Paciente</small>
-                <div><Link to="/portal/login">Entrar no Portal</Link></div>
-              </div>
+
             </div>
           </div>
         </div>
       </div>
     </div>
+    </>
   )
 }
