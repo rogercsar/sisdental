@@ -37,6 +37,23 @@ function formatCurrency(n?: number | null) {
   return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
 
+function statusBadgeClass(s?: string | null) {
+  const st = (s || '').toLowerCase()
+  if (st.includes('confirm')) return 'bg-info'
+  if (st.includes('concl') || st.includes('realiz')) return 'bg-success'
+  if (st.includes('cancel')) return 'bg-danger'
+  if (st.includes('pend')) return 'bg-warning'
+  return 'bg-secondary'
+}
+function statusBorderClass(s?: string | null) {
+  const st = (s || '').toLowerCase()
+  if (st.includes('confirm')) return 'border-info'
+  if (st.includes('concl') || st.includes('realiz')) return 'border-success'
+  if (st.includes('cancel')) return 'border-danger'
+  if (st.includes('pend')) return 'border-warning'
+  return 'border-secondary'
+}
+
 const AgendamentosDia: React.FC = () => {
   const navigate = useNavigate()
   const location = useLocation()
@@ -119,6 +136,19 @@ const AgendamentosDia: React.FC = () => {
     })
   }, [agendamentos, pacientesMap, busca, statusFiltro, servicoFiltro])
 
+  const resumo = useMemo(() => {
+    const total = agsFiltrados.length
+    let agendado = 0, confirmado = 0, concluido = 0, cancelado = 0
+    agsFiltrados.forEach(a => {
+      const s = (a.status || '').toLowerCase()
+      if (s.includes('cancel')) cancelado++
+      else if (s.includes('concl') || s.includes('realiz')) concluido++
+      else if (s.includes('confirm')) confirmado++
+      else agendado++
+    })
+    return { total, agendado, confirmado, concluido, cancelado }
+  }, [agsFiltrados])
+
   function shareWhatsApp(a: Agendamento) {
     const pac = pacientesMap[a.paciente_id]
     const nome = pac?.nome || 'Paciente'
@@ -142,93 +172,122 @@ const AgendamentosDia: React.FC = () => {
   }
 
   return (
-    <div className="p-4">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-semibold">Agendamentos do Dia</h1>
-        <div className="flex gap-2">
-          <button onClick={() => navigate('/dashboard')} className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded">Voltar ao Dashboard</button>
-          <Link to="/agendamentos" className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded">Ver lista</Link>
+    <div className="container mt-4">
+      <div className="d-flex align-items-center justify-content-between mb-4">
+        <h2 className="mb-0">Agendamentos do Dia</h2>
+        <div className="btn-group">
+          <button onClick={() => navigate('/dashboard')} className="btn btn-light"><i className="fas fa-arrow-left me-1"></i> Voltar ao Dashboard</button>
+          <Link to="/agendamentos" className="btn btn-outline-secondary"><i className="fas fa-list me-1"></i> Ver lista</Link>
         </div>
       </div>
 
-      <div className="bg-white rounded shadow p-4 mb-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <div>
-            <label className="text-sm text-gray-600">Data</label>
-            <input type="date" value={date} onChange={e => setDate(e.target.value)} className="mt-1 w-full border rounded px-2 py-1" />
+      <div className="card mb-3 shadow-sm">
+        <div className="card-body">
+          <div className="row row-cols-1 row-cols-md-5 g-3">
+            <div className="col">
+              <label className="form-label small text-muted">Data</label>
+              <input type="date" value={date} onChange={e => setDate(e.target.value)} className="form-control" />
+            </div>
+            <div className="col">
+              <label className="form-label small text-muted">Buscar</label>
+              <div className="input-group">
+                <span className="input-group-text"><i className="fas fa-search"></i></span>
+                <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Nome ou observações" className="form-control" />
+              </div>
+            </div>
+            <div className="col">
+              <label className="form-label small text-muted">Status</label>
+              <select value={statusFiltro} onChange={e => setStatusFiltro(e.target.value)} className="form-select">
+                <option>Todos</option>
+                <option>Agendado</option>
+                <option>Confirmado</option>
+                <option>Concluído</option>
+                <option>Cancelado</option>
+              </select>
+            </div>
+            <div className="col">
+              <label className="form-label small text-muted">Serviço</label>
+              <select value={servicoFiltro} onChange={e => setServicoFiltro(e.target.value)} className="form-select">
+                <option>Todos</option>
+                {servicos.map(s => (<option key={s}>{s}</option>))}
+              </select>
+            </div>
+            <div className="col d-flex align-items-end">
+              <button onClick={load} className="btn btn-primary w-100"><i className="fas fa-sync me-1"></i> Atualizar</button>
+            </div>
           </div>
-          <div>
-            <label className="text-sm text-gray-600">Buscar por nome ou observações</label>
-            <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Digite para filtrar" className="mt-1 w-full border rounded px-2 py-1" />
-          </div>
-          <div>
-            <label className="text-sm text-gray-600">Status</label>
-            <select value={statusFiltro} onChange={e => setStatusFiltro(e.target.value)} className="mt-1 w-full border rounded px-2 py-1">
-              <option>Todos</option>
-              <option>Agendado</option>
-              <option>Confirmado</option>
-              <option>Concluído</option>
-              <option>Cancelado</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-sm text-gray-600">Serviço</label>
-            <select value={servicoFiltro} onChange={e => setServicoFiltro(e.target.value)} className="mt-1 w-full border rounded px-2 py-1">
-              <option>Todos</option>
-              {servicos.map(s => (<option key={s}>{s}</option>))}
-            </select>
-          </div>
-          <div className="flex items-end"><button onClick={load} className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded">Atualizar</button></div>
         </div>
       </div>
 
-      <div className="bg-white rounded shadow p-4">
-        {loading ? (
-          <div className="text-gray-500">Carregando...</div>
-        ) : (
-          <div className="space-y-6">
-            {horasDia.map(h => {
-               const label = formatHour(h)
-               const items = agsFiltrados.filter(a => (a.hora || '').slice(0, 2) === `${h}`.padStart(2, '0'))
-               return (
-                 <div key={h}>
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className={`w-20 text-right font-medium ${items.length ? 'text-blue-600' : 'text-gray-600'}`}>{label}</div>
-                    <div className="h-px bg-gray-200 flex-1" />
-                   </div>
-                  {items.length === 0 ? (
-                    <div className="ml-24 text-sm text-gray-400">Sem agendamentos neste horário</div>
-                  ) : (
-                    <div className="ml-24 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {items.map(a => {
-                        const pac = pacientesMap[a.paciente_id]
-                        return (
-                          <div key={a.id} className="border rounded p-3 hover:shadow-sm">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <div className="font-medium">{pac?.nome || 'Paciente'}</div>
-                                <div className="text-xs text-gray-500">{a.status || 'Agendado'} • {a.hora || ''} • {formatCurrency(a.valor_previsto)}</div>
-                              </div>
-                              <div className="flex gap-2">
-                                <button onClick={() => navigate(`/consulta/${a.id}`)} className="px-2 py-1 text-sm bg-green-600 hover:bg-green-700 text-white rounded">Consulta</button>
-                                <button onClick={() => navigate(`/agendamentos/${a.id}/editar`)} className="px-2 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded">Editar</button>
-                              </div>
-                            </div>
-                            {a.observacoes && <div className="mt-2 text-sm text-gray-600">{a.observacoes}</div>}
-                            <div className="mt-3 flex gap-2">
-                              <button onClick={() => shareWhatsApp(a)} className="px-2 py-1 text-sm bg-emerald-100 hover:bg-emerald-200 rounded">WhatsApp</button>
-                              <button onClick={() => excluir(a)} className="px-2 py-1 text-sm bg-red-100 hover:bg-red-200 rounded">Excluir</button>
-                            </div>
-                          </div>
-                        )
-                      })}
+      <div className="card mb-4 shadow-sm">
+        <div className="card-body">
+          <div className="d-flex flex-wrap gap-2 align-items-center">
+            <span className="badge bg-dark">Total: {resumo.total}</span>
+            <span className="badge bg-secondary">Agendado: {resumo.agendado}</span>
+            <span className="badge bg-info">Confirmado: {resumo.confirmado}</span>
+            <span className="badge bg-success">Concluído: {resumo.concluido}</span>
+            <span className="badge bg-danger">Cancelado: {resumo.cancelado}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="card shadow-sm">
+        <div className="card-body">
+          {loading ? (
+            <div className="text-muted">Carregando...</div>
+          ) : (
+            <div className="d-flex flex-column gap-4">
+              {horasDia.map(h => {
+                const label = formatHour(h)
+                const items = agsFiltrados.filter(a => (a.hora || '').slice(0, 2) === `${h}`.padStart(2, '0'))
+                return (
+                  <div key={h}>
+                    <div className="d-flex align-items-center gap-3 mb-2">
+                      <div className={`text-muted fw-semibold`} style={{ width: '80px' }}>{label}</div>
+                      <div className="flex-grow-1 border-top" />
                     </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        )}
+                    {items.length === 0 ? (
+                      <div className="ms-5 small text-muted fst-italic">Sem agendamentos neste horário</div>
+                    ) : (
+                      <div className="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+                        {items.map(a => {
+                          const pac = pacientesMap[a.paciente_id]
+                          const borderCls = statusBorderClass(a.status)
+                          const badgeCls = statusBadgeClass(a.status)
+                          return (
+                            <div key={a.id} className="col">
+                              <div className={`card h-100 shadow-sm border-0 border-start ${borderCls} border-5`}>
+                                <div className="card-body d-flex flex-column">
+                                  <div className="d-flex justify-content-between align-items-center mb-2">
+                                    <div className="d-flex align-items-center">
+                                      <span className="display-6 fw-bold me-2">{(a.hora || '').slice(0,5)}</span>
+                                      <span className={`badge ${badgeCls}`}>{a.status || 'Agendado'}</span>
+                                    </div>
+                                    <div className="text-end">
+                                      <div className="fw-semibold">{pac?.nome || 'Paciente'}</div>
+                                      <div className="small text-muted">{a.servico || '-'} • {formatCurrency(a.valor_previsto)}</div>
+                                    </div>
+                                  </div>
+                                  {a.observacoes && <div className="small text-muted mb-2"><i className="fas fa-sticky-note me-1"></i>{a.observacoes}</div>}
+                                  <div className="d-flex justify-content-end gap-2 mt-auto">
+                                    <button onClick={() => shareWhatsApp(a)} className="btn btn-outline-success btn-sm"><i className="fab fa-whatsapp me-1"></i> WhatsApp</button>
+                                    <button onClick={() => navigate(`/agendamentos/${a.id}/editar`)} className="btn btn-outline-secondary btn-sm"><i className="fas fa-edit me-1"></i> Editar</button>
+                                    <button onClick={() => navigate(`/consulta/${a.id}`)} className="btn btn-outline-primary btn-sm"><i className="fas fa-play me-1"></i> Consulta</button>
+                                    <button onClick={() => excluir(a)} className="btn btn-outline-danger btn-sm"><i className="fas fa-trash me-1"></i> Excluir</button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
