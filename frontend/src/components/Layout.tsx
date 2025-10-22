@@ -146,6 +146,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { to: '/agendamentos', label: 'Agendamentos', icon: 'fa-calendar-alt' },
     { to: '/financeiro', label: 'Financeiro', icon: 'fa-dollar-sign' },
     { to: '/importar', label: 'Importar', icon: 'fa-file-import' },
+    { to: '/exportar', label: 'Exportar', icon: 'fa-file-export' },
+    { to: '/relatorios', label: 'Relatórios', icon: 'fa-chart-line' },
   ];
 
   // Breadcrumb simples baseado no caminho atual

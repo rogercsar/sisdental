@@ -138,25 +138,24 @@ body, html {
 /* Odontograma */
 .odontograma-card { overflow: hidden; }
 .odontograma-arches { display: flex; flex-direction: column; gap: 12px; align-items: center; }
-.odontograma-arch { display: flex; justify-content: center; align-items: flex-end; gap: 8px; flex-wrap: nowrap; }
+.odontograma-arch { display: flex; justify-content: center; align-items: flex-end; gap: 8px; flex-wrap: nowrap; width: 100%; }
 .odontograma-arch.upper { padding-top: 8px; }
-.odontograma-arch.lower { padding-bottom: 12px; gap: 6px; }
+.odontograma-arch.lower { padding-bottom: 12px; gap: 6px; max-width: 100%; }
 
 .tooth-btn { background: transparent; border: none; padding: 4px 2px; display: flex; flex-direction: column; align-items: center; cursor: pointer; }
 .tooth-btn:focus { outline: none; }
-.tooth-svg { width: 36px; height: 36px; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.1)); }
+.tooth-svg { filter: drop-shadow(0 1px 1px rgba(0,0,0,0.1)); }
 .tooth-selected .tooth-svg { filter: drop-shadow(0 0 6px rgba(13,110,253,0.4)); }
 .tooth-label { font-size: 0.75rem; color: #6c757d; margin-top: 2px; }
 .odontograma-fdi-note { font-size: 0.8rem; color: #6c757d; }
 
 @media (max-width: 768px) {
   .odontograma-arch { gap: 6px; }
-  .tooth-svg { width: 30px; height: 30px; }
+  /* o tamanho do SVG é controlado via atributo width/height no componente */
   .tooth-label { font-size: 0.7rem; }
 }
 @media (max-width: 576px) {
   /* Tornar a arcada inferior mais compacta em telas pequenas */
-  .odontograma-arch.lower .tooth-svg { width: 28px; height: 28px; }
   .odontograma-arch.lower { gap: 4px; }
 }
 

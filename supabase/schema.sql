@@ -251,3 +251,7 @@ create policy "Paciente read own documentos" on storage.objects
         and name like ('pacientes/' || p.paciente_id || '/%')
     )
   );
+
+-- Atualizações de schema para multi-dentes e dentista
+alter table if exists odontograma_tratamentos add column if not exists dente_numeros jsonb;
+alter table if exists odontograma_tratamentos add column if not exists dentista text;

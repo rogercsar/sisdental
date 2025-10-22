@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { getSupabase } from '../lib/supabase';
 
 interface Paciente { id: number; nome: string; cpf?: string | null; telefone?: string | null; email?: string | null; data_nascimento?: string | null; }
-interface Tratamento { id: number; data_tratamento?: string | null; dente_numero?: number | null; tipo_tratamento?: string | null; valor?: number | null; concluido?: boolean | null; observacoes?: string | null; }
+interface Tratamento { id: number; data_tratamento?: string | null; dente_numero?: number | null; dente_numeros?: number[] | null; tipo_tratamento?: string | null; valor?: number | null; concluido?: boolean | null; observacoes?: string | null; dentista?: string | null; }
 interface Lancamento { id: number; data_vencimento?: string | null; descricao?: string | null; valor?: number | null; status?: string | null; data_pagamento?: string | null; }
 interface Agendamento { id: number; data?: string | null; hora?: string | null; servico?: string | null; status?: string | null; }
 
@@ -55,7 +55,7 @@ const DetalhesPaciente: React.FC = () => {
 
         const { data: tData, error: tErr } = await supabase
           .from('odontograma_tratamentos')
-          .select('id, data_tratamento, dente_numero, tipo_tratamento, valor, concluido, observacoes')
+          .select('id, data_tratamento, dente_numero, dente_numeros, tipo_tratamento, valor, concluido, observacoes, dentista')
           .eq('paciente_id', pacienteId)
           .order('data_tratamento', { ascending: false });
         if (tErr) throw tErr;
@@ -163,10 +163,11 @@ const DetalhesPaciente: React.FC = () => {
                     <thead>
                       <tr>
                         <th>Data</th>
-                        <th>Dente</th>
+                        <th>Dentes</th>
                         <th>Tratamento</th>
                         <th>Valor (R$)</th>
                         <th>Status</th>
+                        <th>Dentista</th>
                         <th>Observações</th>
                       </tr>
                     </thead>
@@ -174,7 +175,7 @@ const DetalhesPaciente: React.FC = () => {
                       {tratamentos.map((t) => (
                         <tr key={t.id}>
                           <td>{t.data_tratamento ? new Date(t.data_tratamento).toLocaleDateString('pt-BR') : 'N/A'}</td>
-                          <td>{t.dente_numero ?? '-'}</td>
+                          <td>{Array.isArray(t.dente_numeros) && t.dente_numeros.length ? t.dente_numeros.join(', ') : (t.dente_numero ?? '-')}</td>
                           <td>
                             <span className="type-swatch" style={{ backgroundColor: corPorCategoriaLocal[tipoCategoriaLocal(t.tipo_tratamento)] }} />
                             {t.tipo_tratamento ?? '-'}
@@ -185,6 +186,7 @@ const DetalhesPaciente: React.FC = () => {
                               {t.concluido ? 'Concluído' : 'Em Andamento'}
                             </span>
                           </td>
+                          <td>{t.dentista ?? '-'}</td>
                           <td>{t.observacoes ?? '-'}</td>
                         </tr>
                       ))}
