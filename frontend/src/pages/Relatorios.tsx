@@ -1,8 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { getSupabase } from '../lib/supabase'
 
 interface Agendamento { id: number; servico: string; data: string }
-interface Tratamento { id: number; valor: number | null; concluido: boolean | null; data_tratamento: string | null }
 
 const startOfMonthISO = () => {
   const d = new Date()

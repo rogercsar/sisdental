@@ -194,7 +194,6 @@ const Odontograma: React.FC = () => {
 
   // Utilitário de agrupamento por lote de dentes
   const GROUP_TAG = 'GID:';
-  const makeGroupId = () => (crypto && 'randomUUID' in crypto ? crypto.randomUUID() : String(Math.random()).slice(2));
   const getGroupIdFromObs = (obs?: string | null) => {
     if (!obs) return null;
     const i = obs.indexOf(GROUP_TAG);

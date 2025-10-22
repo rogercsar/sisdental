@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { getSupabase } from '../lib/supabase'
 
 const toCSV = (rows: any[]): string => {
