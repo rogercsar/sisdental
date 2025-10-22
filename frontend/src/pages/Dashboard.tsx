@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { getSupabase } from '../lib/supabase';
 
 interface AgendamentoHojeItem {
@@ -78,6 +78,7 @@ function formatISODateBR(dateISO: string): string {
 }
 
 const Dashboard: React.FC = () => {
+  const navigate = useNavigate();
   const [totalPacientes, setTotalPacientes] = useState<number | null>(null);
   const [totalAgendamentos, setTotalAgendamentos] = useState<number | null>(null);
   const [consultasHoje, setConsultasHoje] = useState<number | null>(null);
@@ -267,15 +268,12 @@ const Dashboard: React.FC = () => {
                     {dayNum ? (
                       <button
                     className={`w-100 btn ${selected ? 'btn-primary' : 'btn-outline-secondary'}`}
-                    onClick={() => setCalSelectedDate(dateKey)}
-                    style={{ minHeight: '120px', textAlign: 'left' }}
+                    onClick={() => navigate(`/agendamentos/dia?data=${dateKey}`)}
+                    style={{ minHeight: '120px' }}
                   >
-                    <div className="d-flex justify-content-between align-items-start mb-2">
-                      <span className="fw-bold">{dayNum}</span>
-                      <span className="badge bg-secondary">{count}</span>
-                    </div>
-                    <div className="small text-muted">
-                      {count === 1 ? '1 agendamento' : `${count} agendamentos`}
+                    <div className="d-flex flex-column align-items-center justify-content-center" style={{ minHeight: '100px' }}>
+                      <div className="fs-4 fw-bold">{dayNum}</div>
+                      <div className="mt-1 small text-muted"><i className="fas fa-user me-1"></i>{count}</div>
                     </div>
                   </button>
                     ) : (
@@ -287,34 +285,7 @@ const Dashboard: React.FC = () => {
             </React.Fragment>
           ))}
         </div>
-        {calSelectedDate && (
-          <div className="mt-3">
-            <h6 className="mb-2">Agendamentos em {formatISODateBR(calSelectedDate)}</h6>
-            {((calDataMap.get(calSelectedDate) ?? []).length) === 0 ? (
-              <div className="text-muted">Nenhum agendamento.</div>
-            ) : (
-              <ul className="list-group">
-                {(calDataMap.get(calSelectedDate) ?? []).map((ag) => (
-                  <li key={ag.id} className="list-group-item d-flex justify-content-between align-items-center">
-                    <div>
-                      <span className="fw-bold me-2">{formatHora(ag.hora)}</span>
-                      <span className="me-2">{ag.nome ?? 'Paciente'}</span>
-                      <span className="text-muted">{ag.servico ?? '-'}</span>
-                    </div>
-                    <div className="d-flex gap-2">
-                      <button onClick={() => marcarChegada(ag)} className="btn btn-outline-info btn-sm">
-                        <i className="fas fa-walking me-1"></i> Cheguei
-                      </button>
-                      <Link to={`/consulta/${ag.id}`} className="btn btn-outline-success btn-sm">
-                        <i className="fas fa-play me-1"></i> Abrir
-                      </Link>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
+
       </div>
     );
   };

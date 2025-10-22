@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { getSupabase } from '../lib/supabase'
 
 interface Agendamento {
@@ -39,6 +39,7 @@ function formatCurrency(n?: number | null) {
 
 const AgendamentosDia: React.FC = () => {
   const navigate = useNavigate()
+  const location = useLocation()
 
   const [date, setDate] = useState<string>(todayISO())
   const [busca, setBusca] = useState('')
@@ -86,6 +87,14 @@ const AgendamentosDia: React.FC = () => {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    // Inicializar a data a partir do query param ?data=YYYY-MM-DD, se presente
+    const params = new URLSearchParams(location.search)
+    const d = params.get('data')
+    if (d) setDate(d)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search])
 
   useEffect(() => {
     load()
@@ -137,6 +146,7 @@ const AgendamentosDia: React.FC = () => {
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-semibold">Agendamentos do Dia</h1>
         <div className="flex gap-2">
+          <button onClick={() => navigate('/dashboard')} className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded">Voltar ao Dashboard</button>
           <Link to="/agendamentos" className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded">Ver lista</Link>
         </div>
       </div>
