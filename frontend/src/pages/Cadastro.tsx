@@ -5,16 +5,16 @@ export default function Cadastro() {
     <div className="container py-5">
       <div className="row justify-content-center w-100">
         <div className="col-lg-10">
-          <div className="position-relative bg-primary bg-gradient text-white rounded-4 p-4 p-md-5 shadow-sm mb-5">
+          <div className="position-relative hero-gradient text-white rounded-4 p-4 p-md-5 shadow-sm mb-5">
             <div className="row align-items-center">
               <div className="col-lg-7">
                 <h1 className="h2 fw-bold mb-2">Sisdental</h1>
                 <p className="lead mb-4">Simplifique a gestão da sua clínica: agenda, pacientes, financeiro e comunicação no mesmo lugar.</p>
                 <div className="d-flex gap-2 flex-wrap">
-                  <Link to="/cadastro#planos" className="btn btn-light text-primary fw-semibold">
+                  <Link to="/cadastro#planos" className="btn btn-light text-primary fw-semibold btn-lift">
                     Ver Planos
                   </Link>
-                  <Link to="/login" className="btn btn-outline-light">
+                  <Link to="/login" className="btn btn-outline-light btn-lift">
                     Entrar
                   </Link>
                 </div>
@@ -26,9 +26,10 @@ export default function Cadastro() {
               </div>
             </div>
           </div>
+
           <div className="row g-4 mb-4">
             <div className="col-lg-6">
-              <div className="card h-100 shadow-sm border-0 rounded-4">
+              <div className="card h-100 shadow-sm border-0 rounded-4 card-hover">
                 <div className="card-body">
                   <h5 className="card-title">O que é o Sisdental?</h5>
                   <p className="text-muted">Plataforma completa de gestão para clínicas odontológicas que centraliza agenda, pacientes, financeiro e comunicação em um só lugar.</p>
@@ -42,7 +43,7 @@ export default function Cadastro() {
               </div>
             </div>
             <div className="col-lg-6">
-              <div className="card h-100 shadow-sm border-0 rounded-4">
+              <div className="card h-100 shadow-sm border-0 rounded-4 card-hover">
                 <div className="card-body">
                   <h5 className="card-title">Problemas que resolvemos</h5>
                   <ul className="list-unstyled">
@@ -62,6 +63,7 @@ export default function Cadastro() {
               </div>
             </div>
           </div>
+
           <div className="row g-3 text-center mb-5">
             <div className="col-6 col-md-3">
               <div className="p-3 bg-white border rounded-4 shadow-sm h-100">
@@ -88,12 +90,14 @@ export default function Cadastro() {
               </div>
             </div>
           </div>
+
           <div className="text-center mb-4">
-            <Link to="/cadastro#planos" className="btn btn-outline-primary btn-lg">Ver Planos</Link>
+            <Link to="/cadastro#planos" className="btn btn-outline-primary btn-lg btn-lift">Ver Planos</Link>
           </div>
+
           <div id="planos" className="row g-4">
             <div className="col-md-6">
-              <div className="card h-100 shadow-sm border-0 rounded-4">
+              <div className="card h-100 shadow-sm border-0 rounded-4 card-hover">
                 <div className="card-body d-flex flex-column">
                   <div className="d-flex justify-content-between align-items-start mb-2">
                     <h5 className="card-title mb-0">Plano Básico</h5>
@@ -110,7 +114,7 @@ export default function Cadastro() {
                     <li>Suporte por e-mail</li>
                   </ul>
                   <div className="mt-auto">
-                    <Link to="/cadastro/basico" className="btn btn-outline-primary w-100">
+                    <Link to="/cadastro/basico" className="btn btn-outline-primary w-100 btn-lift">
                       Cadastrar no Básico
                     </Link>
                   </div>
@@ -119,11 +123,11 @@ export default function Cadastro() {
             </div>
 
             <div className="col-md-6">
-              <div className="card h-100 shadow-sm border-0 rounded-4">
+              <div className="card h-100 shadow-sm border-0 rounded-4 card-hover">
                 <div className="card-body d-flex flex-column">
                   <div className="d-flex justify-content-between align-items-start mb-2">
                     <h5 className="card-title mb-0">Plano Profissional</h5>
-                    <span className="badge bg-primary">Mais Popular</span>
+                    <span className="badge badge-popular">Mais Popular</span>
                   </div>
                   <div className="mb-2">
                     <span className="display-6 fw-bold text-primary">R$ 99</span>
@@ -137,7 +141,7 @@ export default function Cadastro() {
                     <li>Suporte prioritário</li>
                   </ul>
                   <div className="mt-auto">
-                    <Link to="/cadastro/profissional" className="btn btn-primary w-100">
+                    <Link to="/cadastro/profissional" className="btn btn-primary w-100 btn-lift">
                       Cadastrar no Profissional
                     </Link>
                   </div>
@@ -197,7 +201,7 @@ export default function Cadastro() {
             <h5 className="mb-3 text-center">Depoimentos</h5>
             <div className="row g-3">
               <div className="col-md-4">
-                <div className="card border-0 shadow-sm rounded-4 h-100">
+                <div className="card border-0 shadow-sm rounded-4 h-100 card-hover">
                   <div className="card-body">
                     <p className="mb-2">“O Sisdental nos ajudou a organizar a agenda e reduzir faltas.”</p>
                     <div className="small text-muted">Clínica Sorriso — São Paulo</div>
@@ -205,7 +209,7 @@ export default function Cadastro() {
                 </div>
               </div>
               <div className="col-md-4">
-                <div className="card border-0 shadow-sm rounded-4 h-100">
+                <div className="card border-0 shadow-sm rounded-4 h-100 card-hover">
                   <div className="card-body">
                     <p className="mb-2">“Facilitou o acompanhamento do histórico do paciente e do financeiro.”</p>
                     <div className="small text-muted">Odonto Vida — Belo Horizonte</div>
@@ -213,7 +217,7 @@ export default function Cadastro() {
                 </div>
               </div>
               <div className="col-md-4">
-                <div className="card border-0 shadow-sm rounded-4 h-100">
+                <div className="card border-0 shadow-sm rounded-4 h-100 card-hover">
                   <div className="card-body">
                     <p className="mb-2">“Equipe de suporte atenciosa e plataforma simples de usar.”</p>
                     <div className="small text-muted">Clínica Bem-Estar — Curitiba</div>

@@ -3,6 +3,7 @@
   --bg-light: #f8f9fa;
   --text-dark: #f8f9fa;
   --text-light: #212529;
+  --primary-color: #0d6efd;
 }
 
 html[data-theme="dark"] {
@@ -189,4 +190,27 @@ body, html {
   margin-right: 6px;
   vertical-align: middle;
   border: 1px solid rgba(0,0,0,0.15);
+}
+
+/* Mapear cor primária para Bootstrap */
+:root { --bs-primary: var(--primary-color); }
+
+/* Hero com gradiente da marca */
+.hero-gradient {
+  background: linear-gradient(135deg, var(--primary-color) 0%, #3a7bff 60%, #66a6ff 100%);
+}
+
+/* Microinterações: hover suave nos cards */
+.card-hover { transition: transform .2s ease, box-shadow .2s ease; }
+.card-hover:hover { transform: translateY(-2px); box-shadow: 0 .5rem 1rem rgba(0,0,0,.15); }
+
+/* Microinterações: botões com leve elevação */
+.btn-lift { transition: transform .15s ease; }
+.btn-lift:hover { transform: translateY(-1px); }
+
+/* Badge custom para destaque de plano */
+.badge-popular {
+  background: linear-gradient(90deg, #4f46e5, #6366f1);
+  box-shadow: 0 2px 6px rgba(79,70,229,.35);
+  color: #fff;
 }
