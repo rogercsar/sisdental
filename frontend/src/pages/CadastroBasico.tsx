@@ -162,10 +162,11 @@ export default function CadastroBasico() {
                       Ao continuar, um QR Code Pix será gerado para pagamento.
                     </div>
                   )}
-+                 <div className="trust-badges mt-3">
-+                   <span className="badge bg-white border text-dark"><i className="fas fa-rotate-left text-success me-1"></i> Garantia 7 dias</span>
-+                   <span className="badge bg-white border text-dark"><i className="fas fa-ban text-primary me-1"></i> Sem fidelidade</span>
-+                 </div>
+                  <div className="trust-badges mt-3">
+                    <span className="badge bg-white border text-dark"><i className="fas fa-rotate-left text-success me-1"></i> Garantia 7 dias</span>
+                    <span className="badge bg-white border text-dark"><i className="fas fa-ban text-primary me-1"></i> Sem fidelidade</span>
+                    <span className="badge bg-white border text-dark"><i className="fas fa-lock text-success me-1"></i> Pagamento seguro</span>
+                  </div>
                 </div>
 
                 <div className="form-check mb-3">

@@ -119,18 +119,37 @@ export default function CadastroProfissional() {
                 </button>
                 <div className="text-muted small mt-2">Ao continuar, você será redirecionado ao Mercado Pago.</div>
               </form>
-+             <div className="trust-badges mt-3">
-+               <span className="badge bg-white border text-dark"><i className="fas fa-rotate-left text-success me-1"></i> Garantia 7 dias</span>
-+               <span className="badge bg-white border text-dark"><i className="fas fa-ban text-primary me-1"></i> Sem fidelidade</span>
-+             </div>
-+             <div className="faq-box mt-4">
-+               <h6 className="mb-2">Dúvidas frequentes</h6>
-+               <ul className="list-unstyled small text-muted mb-0">
-+                 <li className="mb-2"><strong>Como funciona a cobrança?</strong> Mensal via Mercado Pago. Cancele quando quiser.</li>
-+                 <li className="mb-2"><strong>Existe fidelidade?</strong> Não. Sem multa de cancelamento.</li>
-+                 <li className="mb-0"><strong>Posso pedir reembolso?</strong> Sim, garantia de 7 dias.</li>
-+               </ul>
-+             </div>
+              <div className="trust-badges mt-3">
+                <span className="badge bg-white border text-dark"><i className="fas fa-rotate-left text-success me-1"></i> Garantia 7 dias</span>
+                <span className="badge bg-white border text-dark"><i className="fas fa-ban text-primary me-1"></i> Sem fidelidade</span>
+                <span className="badge bg-white border text-dark"><i className="fas fa-lock text-success me-1"></i> Pagamento seguro</span>
+              </div>
+              <div className="faq-box mt-4">
+                <h6 className="mb-2">Dúvidas frequentes</h6>
+                <div className="small">
+                  <details className="mb-2">
+                    <summary className="fw-semibold d-flex align-items-center justify-content-between">
+                      <span>Como funciona a cobrança?</span>
+                      <i className="fas fa-chevron-down text-muted small"></i>
+                    </summary>
+                    <div className="text-muted mt-2">Mensal via Mercado Pago. Cancele quando quiser.</div>
+                  </details>
+                  <details className="mb-2">
+                    <summary className="fw-semibold d-flex align-items-center justify-content-between">
+                      <span>Existe fidelidade?</span>
+                      <i className="fas fa-chevron-down text-muted small"></i>
+                    </summary>
+                    <div className="text-muted mt-2">Não. Sem multa de cancelamento.</div>
+                  </details>
+                  <details>
+                    <summary className="fw-semibold d-flex align-items-center justify-content-between">
+                      <span>Posso pedir reembolso?</span>
+                      <i className="fas fa-chevron-down text-muted small"></i>
+                    </summary>
+                    <div className="text-muted mt-2">Sim, garantia de 7 dias.</div>
+                  </details>
+                </div>
+              </div>
               <div className="mt-3 text-center">
                 <Link to="/cadastro">Voltar aos Planos</Link>
               </div>

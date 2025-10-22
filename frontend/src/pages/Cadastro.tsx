@@ -1,8 +1,68 @@
 import { Link } from 'react-router-dom'
+import { useEffect } from 'react'
 
 export default function Cadastro() {
+  useEffect(() => {
+    const faqJsonLd = {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Como funciona a cobrança?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A cobrança é mensal via Mercado Pago. Você pode cancelar quando quiser."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Existe fidelidade?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Não. Você pode cancelar sem multa a qualquer momento."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Posso pedir reembolso?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Sim, oferecemos garantia de 7 dias."
+          }
+        }
+      ]
+    };
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.id = 'faq-jsonld-cadastro';
+    script.text = JSON.stringify(faqJsonLd);
+    document.head.appendChild(script);
+    return () => {
+      const el = document.getElementById('faq-jsonld-cadastro');
+      if (el && el.parentNode) el.parentNode.removeChild(el);
+    };
+  }, []);
   return (
-    <div className="container py-5">
+    <>
+      <header className="glass-nav">
+        <div className="container d-flex align-items-center justify-content-between py-2">
+          <Link to="/" className="d-flex align-items-center text-decoration-none">
+            <i className="fas fa-tooth text-primary me-2"></i>
+            <span className="fw-semibold text-dark">Sisdental</span>
+          </Link>
+          <nav className="d-none d-md-flex align-items-center gap-3">
+            <a href="#planos" className="text-decoration-none text-dark">Planos</a>
+            <a href="#comparativo" className="text-decoration-none text-dark">Comparativo</a>
+            <a href="#depoimentos" className="text-decoration-none text-dark">Depoimentos</a>
+          </nav>
+          <div className="d-flex align-items-center gap-2">
+            <Link to="/login" className="btn btn-outline-primary btn-sm btn-lift">Entrar</Link>
+            <Link to="/cadastro#planos" className="btn btn-primary btn-sm btn-lift">Teste grátis</Link>
+          </div>
+        </div>
+      </header>
+      <div className="container py-5 pt-nav">
       <div className="row justify-content-center w-100">
         <div className="col-lg-10">
           <div className="position-relative hero-gradient text-white rounded-4 p-4 p-md-5 shadow-sm mb-5">
@@ -19,9 +79,10 @@ export default function Cadastro() {
                   </Link>
                 </div>
                 <div className="trust-badges mt-3">
-                  <span className="badge bg-white border text-dark"><i className="fas fa-rotate-left text-success me-1"></i> Garantia 7 dias</span>
-                  <span className="badge bg-white border text-dark"><i className="fas fa-ban text-primary me-1"></i> Sem fidelidade</span>
-                </div>
+                    <span className="badge bg-white border text-dark"><i className="fas fa-rotate-left text-success me-1"></i> Garantia 7 dias</span>
+                    <span className="badge bg-white border text-dark"><i className="fas fa-ban text-primary me-1"></i> Sem fidelidade</span>
+                    <span className="badge bg-white border text-dark"><i className="fas fa-lock text-success me-1"></i> Pagamento seguro</span>
+                  </div>
               </div>
               <div className="col-lg-5 d-none d-lg-block">
                 <div className="text-center">
@@ -99,11 +160,12 @@ export default function Cadastro() {
             <Link to="/cadastro#planos" className="btn btn-outline-primary btn-lg btn-lift">Ver Planos</Link>
           </div>
           <div className="d-flex justify-content-center">
-            <div className="trust-badges">
-              <span className="badge bg-white border text-dark"><i className="fas fa-rotate-left text-success me-1"></i> Garantia 7 dias</span>
-              <span className="badge bg-white border text-dark"><i className="fas fa-ban text-primary me-1"></i> Sem fidelidade</span>
+              <div className="trust-badges">
+                <span className="badge bg-white border text-dark"><i className="fas fa-rotate-left text-success me-1"></i> Garantia 7 dias</span>
+                <span className="badge bg-white border text-dark"><i className="fas fa-ban text-primary me-1"></i> Sem fidelidade</span>
+                <span className="badge bg-white border text-dark"><i className="fas fa-lock text-success me-1"></i> Pagamento seguro</span>
+              </div>
             </div>
-          </div>
 
           <div id="planos" className="row g-4">
             <div className="col-md-6">
@@ -162,14 +224,32 @@ export default function Cadastro() {
 
           <div className="faq-box mt-4">
             <h6 className="mb-2">Dúvidas frequentes</h6>
-            <ul className="list-unstyled small text-muted mb-0">
-              <li className="mb-2"><strong>Como funciona a cobrança?</strong> Mensal via Mercado Pago. Cancele quando quiser.</li>
-              <li className="mb-2"><strong>Existe fidelidade?</strong> Não. Sem multa de cancelamento.</li>
-              <li className="mb-0"><strong>Posso pedir reembolso?</strong> Sim, garantia de 7 dias.</li>
-            </ul>
+            <div className="small">
+              <details className="mb-2">
+                <summary className="fw-semibold d-flex align-items-center justify-content-between">
+                  <span>Como funciona a cobrança?</span>
+                  <i className="fas fa-chevron-down text-muted small"></i>
+                </summary>
+                <div className="text-muted mt-2">Mensal via Mercado Pago. Cancele quando quiser.</div>
+              </details>
+              <details className="mb-2">
+                <summary className="fw-semibold d-flex align-items-center justify-content-between">
+                  <span>Existe fidelidade?</span>
+                  <i className="fas fa-chevron-down text-muted small"></i>
+                </summary>
+                <div className="text-muted mt-2">Não. Sem multa de cancelamento.</div>
+              </details>
+              <details>
+                <summary className="fw-semibold d-flex align-items-center justify-content-between">
+                  <span>Posso pedir reembolso?</span>
+                  <i className="fas fa-chevron-down text-muted small"></i>
+                </summary>
+                <div className="text-muted mt-2">Sim, garantia de 7 dias.</div>
+              </details>
+            </div>
           </div>
 
-          <div className="mt-5">
+          <div id="comparativo" className="mt-5">
             <h5 className="mb-3 text-center">Comparativo de Recursos</h5>
             <div className="table-responsive">
               <table className="table align-middle">
@@ -216,7 +296,7 @@ export default function Cadastro() {
             </div>
           </div>
 
-          <div className="mt-5">
+          <div id="depoimentos" className="mt-5">
             <h5 className="mb-3 text-center">Depoimentos</h5>
             <div className="row g-3">
               <div className="col-md-4">
@@ -252,5 +332,6 @@ export default function Cadastro() {
         </div>
       </div>
     </div>
+    </>
   )
 }

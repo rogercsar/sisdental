@@ -242,3 +242,23 @@ body, html {
 }
 .faq-box h6 { font-weight: 600; }
 .faq-box ul li strong { color: #111827; }
+
+/* Header fixo estilo glass */
+.glass-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1040;
+  background: rgba(255,255,255,0.7);
+  backdrop-filter: saturate(180%) blur(12px);
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+.glass-nav a { color: #111827; }
+.glass-nav .btn:hover { transform: translateY(-1px); }
+
+/* Offset para páginas com navbar fixa */
+.pt-nav { padding-top: 84px; }
+@media (max-width: 576px) {
+  .pt-nav { padding-top: 72px; }
+}
