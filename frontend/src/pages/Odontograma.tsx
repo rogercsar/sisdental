@@ -327,26 +327,14 @@ const Odontograma: React.FC = () => {
     if (!supabase) return;
     try {
       const targetValue = !group.concluido;
-      if (group.groupId) {
-        const { error: updErr } = await supabase
-          .from('odontograma_tratamentos')
-          .update({ concluido: targetValue })
-          .like('observacoes', `%${GROUP_TAG}${group.groupId}%`)
-          .eq('paciente_id', paciente!.id);
-        if (updErr) throw updErr;
-        setTratamentos(tratamentos.map(x => (
-          getGroupIdFromObs(x.observacoes) === group.groupId ? { ...x, concluido: targetValue } : x
-        )));
-      } else {
-        const { error: updErr } = await supabase
-          .from('odontograma_tratamentos')
-          .update({ concluido: targetValue })
-          .in('id', group.ids);
-        if (updErr) throw updErr;
-        setTratamentos(tratamentos.map(x => (
-          group.ids.includes(x.id) ? { ...x, concluido: targetValue } : x
-        )));
-      }
+      const { error: updErr } = await supabase
+        .from('odontograma_tratamentos')
+        .update({ concluido: targetValue })
+        .in('id', group.ids);
+      if (updErr) throw updErr;
+      setTratamentos(tratamentos.map(x => (
+        group.ids.includes(x.id) ? { ...x, concluido: targetValue } : x
+      )));
     } catch (e: any) {
       setError(e.message ?? String(e));
     }
