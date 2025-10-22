@@ -72,6 +72,10 @@ function mergeStatusWithTiming(status: string | null, t: 'distante'|'proxima'|'a
   if (t === 'distante') return { border: 'border-info', badge: base.badge };
   return base;
 }
+function formatISODateBR(dateISO: string): string {
+  const [y, m, d] = dateISO.split('-').map(Number);
+  return `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${y}`;
+}
 
 const Dashboard: React.FC = () => {
   const [totalPacientes, setTotalPacientes] = useState<number | null>(null);
@@ -246,7 +250,12 @@ const Dashboard: React.FC = () => {
             <i className="fas fa-chevron-right"></i>
           </button>
         </div>
-        <div className="row row-cols-7 g-2">
+        <div className="row row-cols-7 g-2 mb-2 small text-muted">
+          {['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map((wd) => (
+            <div className="col text-center fw-semibold" key={wd}>{wd}</div>
+          ))}
+        </div>
+        <div className="row row-cols-7 g-3">
           {Array.from({ length: Math.ceil(calCells.length / 7) }, (_, row) => (
             <React.Fragment key={row}>
               {calCells.slice(row * 7, row * 7 + 7).map((dayNum, idx) => {
@@ -257,14 +266,18 @@ const Dashboard: React.FC = () => {
                   <div key={dateKey} className="col">
                     {dayNum ? (
                       <button
-                        className={`w-100 btn btn-sm ${selected ? 'btn-primary' : 'btn-outline-secondary'}`}
-                        onClick={() => setCalSelectedDate(dateKey)}
-                      >
-                        <div className="d-flex justify-content-between align-items-center">
-                          <span>{dayNum}</span>
-                          <span className="badge bg-secondary">{count}</span>
-                        </div>
-                      </button>
+                    className={`w-100 btn ${selected ? 'btn-primary' : 'btn-outline-secondary'}`}
+                    onClick={() => setCalSelectedDate(dateKey)}
+                    style={{ minHeight: '120px', textAlign: 'left' }}
+                  >
+                    <div className="d-flex justify-content-between align-items-start mb-2">
+                      <span className="fw-bold">{dayNum}</span>
+                      <span className="badge bg-secondary">{count}</span>
+                    </div>
+                    <div className="small text-muted">
+                      {count === 1 ? '1 agendamento' : `${count} agendamentos`}
+                    </div>
+                  </button>
                     ) : (
                       <div className="w-100 btn btn-sm btn-light" style={{ visibility: 'hidden' }}>0</div>
                     )}
@@ -276,7 +289,7 @@ const Dashboard: React.FC = () => {
         </div>
         {calSelectedDate && (
           <div className="mt-3">
-            <h6 className="mb-2">Agendamentos em {new Date(calSelectedDate).toLocaleDateString('pt-BR')}</h6>
+            <h6 className="mb-2">Agendamentos em {formatISODateBR(calSelectedDate)}</h6>
             {((calDataMap.get(calSelectedDate) ?? []).length) === 0 ? (
               <div className="text-muted">Nenhum agendamento.</div>
             ) : (
