@@ -24,6 +24,7 @@ import decimal
 import datetime
 import os
 import uuid
+import requests
 
 app = Flask(__name__)
 app.secret_key = 'chave_top_secreta'
@@ -1779,6 +1780,75 @@ def portal_logout():
     return redirect(url_for('portal_login')) # Redireciona para o login do portal
 
 # --- FIM DAS ROTAS DO PORTAL DO PACIENTE (INICIAL) ---
+
+# --- INTEGRAÇÃO MERCADO PAGO ---
+@app.route('/api/checkout/mercadopago/preference', methods=['POST'])
+def create_mercadopago_preference():
+    try:
+        mp_access_token = os.getenv('MP_ACCESS_TOKEN')
+        if not mp_access_token:
+            return jsonify({"error": "MP_ACCESS_TOKEN não configurado no servidor"}), 500
+
+        body = request.get_json(silent=True) or {}
+        title = body.get('title', 'Sisdental - Assinatura do Plano')
+        quantity = int(body.get('quantity', 1))
+        unit_price = float(body.get('unit_price', 0.0))
+        currency_id = body.get('currency_id', 'BRL')
+        external_reference = body.get('external_reference')
+
+        origin = body.get('origin') or request.host_url.rstrip('/')
+        success_url = body.get('back_urls', {}).get('success') or f"{origin}/cadastro/retorno"
+        failure_url = body.get('back_urls', {}).get('failure') or f"{origin}/cadastro/retorno"
+        pending_url = body.get('back_urls', {}).get('pending') or f"{origin}/cadastro/retorno"
+
+        payload = {
+            "items": [
+                {
+                    "title": title,
+                    "quantity": quantity,
+                    "unit_price": unit_price,
+                    "currency_id": currency_id,
+                }
+            ],
+            "back_urls": {
+                "success": success_url,
+                "failure": failure_url,
+                "pending": pending_url,
+            },
+            "auto_return": "approved",
+        }
+        if external_reference:
+            payload["external_reference"] = external_reference
+        if isinstance(body.get('metadata'), dict):
+            payload["metadata"] = body["metadata"]
+
+        headers = {
+            "Authorization": f"Bearer {mp_access_token}",
+            "Content-Type": "application/json",
+        }
+
+        resp = requests.post(
+            "https://api.mercadopago.com/checkout/preferences",
+            json=payload,
+            headers=headers,
+            timeout=30,
+        )
+        try:
+            data = resp.json()
+        except Exception:
+            data = {"error": "Resposta inválida do Mercado Pago", "text": resp.text}
+
+        if resp.status_code >= 400:
+            return jsonify({"error": "Falha ao criar preferência", "details": data}), resp.status_code
+
+        return jsonify({
+            "id": data.get("id"),
+            "init_point": data.get("init_point"),
+            "sandbox_init_point": data.get("sandbox_init_point"),
+        })
+    except Exception as e:
+        return jsonify({"error": "Exceção ao criar preferência", "details": str(e)}), 500
+# --- FIM INTEGRAÇÃO MERCADO PAGO ---
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5020, debug=True) # Mantenha debug=True durante o desenvolvimento

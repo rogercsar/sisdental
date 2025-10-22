@@ -18,6 +18,10 @@ export default function Cadastro() {
                     Entrar
                   </Link>
                 </div>
+                <div className="trust-badges mt-3">
+                  <span className="badge bg-white border text-dark"><i className="fas fa-rotate-left text-success me-1"></i> Garantia 7 dias</span>
+                  <span className="badge bg-white border text-dark"><i className="fas fa-ban text-primary me-1"></i> Sem fidelidade</span>
+                </div>
               </div>
               <div className="col-lg-5 d-none d-lg-block">
                 <div className="text-center">
@@ -91,8 +95,14 @@ export default function Cadastro() {
             </div>
           </div>
 
-          <div className="text-center mb-4">
+          <div className="text-center mb-3">
             <Link to="/cadastro#planos" className="btn btn-outline-primary btn-lg btn-lift">Ver Planos</Link>
+          </div>
+          <div className="d-flex justify-content-center">
+            <div className="trust-badges">
+              <span className="badge bg-white border text-dark"><i className="fas fa-rotate-left text-success me-1"></i> Garantia 7 dias</span>
+              <span className="badge bg-white border text-dark"><i className="fas fa-ban text-primary me-1"></i> Sem fidelidade</span>
+            </div>
           </div>
 
           <div id="planos" className="row g-4">
@@ -148,6 +158,15 @@ export default function Cadastro() {
                 </div>
               </div>
             </div>
+          </div>
+
+          <div className="faq-box mt-4">
+            <h6 className="mb-2">Dúvidas frequentes</h6>
+            <ul className="list-unstyled small text-muted mb-0">
+              <li className="mb-2"><strong>Como funciona a cobrança?</strong> Mensal via Mercado Pago. Cancele quando quiser.</li>
+              <li className="mb-2"><strong>Existe fidelidade?</strong> Não. Sem multa de cancelamento.</li>
+              <li className="mb-0"><strong>Posso pedir reembolso?</strong> Sim, garantia de 7 dias.</li>
+            </ul>
           </div>
 
           <div className="mt-5">

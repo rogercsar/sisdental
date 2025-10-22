@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { getSupabase } from '../lib/supabase'
 
 export default function CadastroProfissional() {
   const navigate = useNavigate()
@@ -12,29 +11,66 @@ export default function CadastroProfissional() {
   const [error, setError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
   const [info, setInfo] = useState<string | null>(null)
+  const [acceptTerms, setAcceptTerms] = useState(false)
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
-    const sb = getSupabase()
-    if (!sb) { setError('Supabase não configurado.'); setLoading(false); return }
+
+    if (!nome || !clinica || !email || !password) {
+      setLoading(false)
+      setError('Preencha nome, clínica, e-mail e senha.')
+      return
+    }
+    if (!acceptTerms) {
+      setLoading(false)
+      setError('É necessário aceitar os termos de uso para continuar.')
+      return
+    }
+
     try {
-      const { data, error } = await sb.auth.signUp({
+      // Salva os dados de cadastro temporariamente para concluir após o retorno do pagamento
+      localStorage.setItem('pendingSignup', JSON.stringify({
+        plano: 'profissional',
+        nome,
+        clinica,
         email,
         password,
-        options: { data: { plano: 'profissional', nome, clinica } }
+      }))
+
+      const origin = window.location.origin
+      const resp = await fetch('/api/checkout/mercadopago/preference', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: 'Sisdental - Plano Profissional',
+          quantity: 1,
+          unit_price: 99.0,
+          currency_id: 'BRL',
+          external_reference: email,
+          back_urls: {
+            success: `${origin}/cadastro/retorno`,
+            failure: `${origin}/cadastro/retorno`,
+            pending: `${origin}/cadastro/retorno`,
+          },
+          metadata: { plano: 'profissional', nome, clinica },
+        }),
       })
-      if (error) throw error
-      if (data?.session) {
-        setInfo('Cadastro realizado! Você já pode fazer login.')
-        setTimeout(() => navigate('/login'), 1200)
-      } else {
-        setInfo('Cadastro realizado! Verifique seu e-mail para confirmar sua conta.')
+
+      const data = await resp.json()
+      if (!resp.ok) {
+        throw new Error(data?.error || 'Falha ao iniciar pagamento.')
       }
+
+      const initPoint = data?.init_point || data?.sandbox_init_point
+      if (!initPoint) {
+        throw new Error('Resposta inválida do provedor de pagamento.')
+      }
+
+      window.location.href = initPoint
     } catch (e: any) {
       setError(e.message ?? String(e))
-    } finally {
       setLoading(false)
     }
   }
@@ -74,10 +110,28 @@ export default function CadastroProfissional() {
                     <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
                   </button>
                 </div>
+                <div className="form-check mb-3">
+                  <input className="form-check-input" type="checkbox" id="terms" checked={acceptTerms} onChange={e=>setAcceptTerms(e.target.checked)} />
+                  <label className="form-check-label" htmlFor="terms">Aceito os termos de uso e política de privacidade</label>
+                </div>
+
                 <button type="submit" className="btn btn-primary w-100" disabled={loading}>
-                  {loading ? (<><span className="spinner-border spinner-border-sm me-2"></span>Cadastrando...</>) : 'Cadastrar'}
+                  {loading ? (<><span className="spinner-border spinner-border-sm me-2"></span>Processando...</>) : 'Pagar e Cadastrar'}
                 </button>
+                <div className="text-muted small mt-2">Ao continuar, você será redirecionado ao Mercado Pago.</div>
               </form>
++             <div className="trust-badges mt-3">
++               <span className="badge bg-white border text-dark"><i className="fas fa-rotate-left text-success me-1"></i> Garantia 7 dias</span>
++               <span className="badge bg-white border text-dark"><i className="fas fa-ban text-primary me-1"></i> Sem fidelidade</span>
++             </div>
++             <div className="faq-box mt-4">
++               <h6 className="mb-2">Dúvidas frequentes</h6>
++               <ul className="list-unstyled small text-muted mb-0">
++                 <li className="mb-2"><strong>Como funciona a cobrança?</strong> Mensal via Mercado Pago. Cancele quando quiser.</li>
++                 <li className="mb-2"><strong>Existe fidelidade?</strong> Não. Sem multa de cancelamento.</li>
++                 <li className="mb-0"><strong>Posso pedir reembolso?</strong> Sim, garantia de 7 dias.</li>
++               </ul>
++             </div>
               <div className="mt-3 text-center">
                 <Link to="/cadastro">Voltar aos Planos</Link>
               </div>

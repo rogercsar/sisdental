@@ -30,6 +30,7 @@ import Configuracoes from './pages/Configuracoes'
 import Cadastro from './pages/Cadastro'
 import CadastroBasico from './pages/CadastroBasico'
 import CadastroProfissional from './pages/CadastroProfissional'
+import CheckoutRetorno from './pages/CheckoutRetorno'
 // Remover import do App.css
 
 function App() {
@@ -82,6 +83,7 @@ function App() {
       <Route path="/cadastro" element={<Cadastro />} />
       <Route path="/cadastro/basico" element={<CadastroBasico />} />
       <Route path="/cadastro/profissional" element={<CadastroProfissional />} />
+      <Route path="/cadastro/retorno" element={<CheckoutRetorno />} />
     </Routes>
   )
 }
