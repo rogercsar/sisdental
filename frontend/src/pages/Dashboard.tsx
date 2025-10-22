@@ -226,7 +226,9 @@ const Dashboard: React.FC = () => {
   }, [supabase, calYear, calMonth]);
 
   const renderCalendario = () => {
-    const firstWeekday = new Date(calYear, calMonth, 1).getDay();
+    const weekStartsMonday = true;
+    const firstWeekdayRaw = new Date(calYear, calMonth, 1).getDay(); // 0=Dom
+    const firstWeekday = weekStartsMonday ? ((firstWeekdayRaw + 6) % 7) : firstWeekdayRaw;
     const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
     const leading = Array(firstWeekday).fill(null) as (number | null)[];
     const dayNums = Array.from({ length: daysInMonth }, (_, i) => i + 1);
@@ -234,54 +236,56 @@ const Dashboard: React.FC = () => {
     const totalCells = Math.ceil(cells.length / 7) * 7;
     const calCells = Array.from({ length: totalCells }, (_, idx) => cells[idx] ?? null) as (number | null)[];
 
+    const monthLabel = new Date(calYear, calMonth, 1).toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+    const weekdayLabels = weekStartsMonday ? ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'] : ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
     return (
       <div>
-        <div className="d-flex align-items-center justify-content-between mb-2">
+        <div className="d-flex align-items-center justify-content-between mb-3">
           <button className="btn btn-outline-secondary btn-sm" onClick={() => changeMonth(-1)}>
             <i className="fas fa-chevron-left"></i>
           </button>
-          <h6 className="mb-0">
-            {new Date(calYear, calMonth, 1).toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}
-          </h6>
+          <h6 className="mb-0 text-capitalize">{monthLabel}</h6>
           <button className="btn btn-outline-secondary btn-sm" onClick={() => changeMonth(1)}>
             <i className="fas fa-chevron-right"></i>
           </button>
         </div>
-        <div className="row row-cols-7 g-2 mb-2 small text-muted">
-          {['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map((wd) => (
-            <div className="col text-center fw-semibold" key={wd}>{wd}</div>
-          ))}
-        </div>
-        <div className="row row-cols-7 g-3">
-          {Array.from({ length: Math.ceil(calCells.length / 7) }, (_, row) => (
-            <React.Fragment key={row}>
-              {calCells.slice(row * 7, row * 7 + 7).map((dayNum, idx) => {
-                const dateKey = dayNum ? `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}` : `empty-${row}-${idx}`;
-                const count = dayNum ? (calDataMap.get(dateKey)?.length ?? 0) : 0;
-                
-                return (
-                  <div key={dateKey} className="col">
-                    {dayNum ? (
-                      <button
-                    className="w-100 btn btn-outline-secondary"
-                    onClick={() => navigate(`/agendamentos/dia?data=${dateKey}`)}
-                    style={{ minHeight: '120px' }}
-                  >
-                    <div className="d-flex flex-column align-items-center justify-content-center" style={{ minHeight: '100px' }}>
-                      <div className="fs-4 fw-bold">{dayNum}</div>
-                      <div className="mt-1 small text-muted"><i className="fas fa-user me-1"></i>{count}</div>
-                    </div>
-                  </button>
-                    ) : (
-                      <div className="w-100 btn btn-sm btn-light" style={{ visibility: 'hidden' }}>0</div>
-                    )}
-                  </div>
-                );
-              })}
-            </React.Fragment>
+
+        <div className="mb-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px' }}>
+          {weekdayLabels.map((wd) => (
+            <div key={wd} className="text-center fw-semibold text-muted">{wd}</div>
           ))}
         </div>
 
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px' }}>
+          {calCells.map((dayNum, idx) => {
+            const dateKey = dayNum ? `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}` : `empty-${idx}`;
+            const count = dayNum ? (calDataMap.get(dateKey)?.length ?? 0) : 0;
+            const isToday = dayNum ? (dateKey === todayISO()) : false;
+            const isWeekend = dayNum ? (weekStartsMonday ? ((idx % 7) >= 5) : (idx % 7 === 0 || idx % 7 === 6)) : false;
+            const baseCls = 'border rounded-3 bg-white shadow-sm';
+            const todayCls = isToday ? ' border-primary' : ' border-light';
+            const weekendBg = isWeekend ? ' bg-light' : '';
+
+            if (!dayNum) {
+              return <div key={dateKey} className={`${baseCls} ${todayCls}${weekendBg}`} style={{ minHeight: '110px', visibility: 'hidden' }} />;
+            }
+
+            return (
+              <button
+                key={dateKey}
+                className={`${baseCls} ${todayCls}${weekendBg} btn p-2 text-start`}
+                onClick={() => navigate(`/agendamentos/dia?data=${dateKey}`)}
+                style={{ minHeight: '110px' }}
+              >
+                <div className="d-flex flex-column align-items-center justify-content-center h-100">
+                  <div className="fs-5 fw-bold">{dayNum}</div>
+                  <div className="mt-1 small text-muted"><i className="fas fa-user me-1"></i>{count}</div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
       </div>
     );
   };
