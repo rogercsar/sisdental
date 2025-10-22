@@ -285,3 +285,30 @@ create policy "Staff full access orcamentos" on orcamentos
 create policy "Paciente read own orcamentos" on orcamentos
   for select to authenticated
   using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'paciente' and orcamentos.paciente_id = p.paciente_id));
+
+-- Configuração da Clínica
+create table if not exists clinica_config (
+  id int primary key,
+  nome text,
+  logo_url text,
+  cnpj text,
+  telefone text,
+  endereco text,
+  updated_at timestamp with time zone default now()
+);
+
+alter table if exists clinica_config enable row level security;
+
+-- Idempotência: remover policies antes de criar
+drop policy if exists "Staff full access clinica_config" on clinica_config;
+
+-- Permitir acesso total para usuários staff autenticados
+create policy "Staff full access clinica_config" on clinica_config
+  for all to authenticated
+  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'staff'))
+  with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'staff'));
+
+-- Seed inicial (registro único id=1)
+insert into clinica_config (id, nome, logo_url, cnpj, telefone, endereco)
+values (1, null, null, null, null, null)
+on conflict (id) do nothing;

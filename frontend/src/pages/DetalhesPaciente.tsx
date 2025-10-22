@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { getSupabase } from '../lib/supabase';
 
 interface Paciente { id: number; nome: string; cpf?: string | null; telefone?: string | null; email?: string | null; data_nascimento?: string | null; }
-interface Tratamento { id: number; data_tratamento?: string | null; dente_numero?: number | null; dente_numeros?: number[] | null; tipo_tratamento?: string | null; valor?: number | null; concluido?: boolean | null; observacoes?: string | null; dentista?: string | null; }
+interface Tratamento { id: number; data_tratamento?: string | null; dente_numero?: number | null; dente_numeros?: number[] | null; tipo_tratamento?: string | null; valor?: number | null; concluido?: boolean | null; observacoes?: string | null; dentista?: string | null; orcamento_id?: number | null }
 interface Lancamento { id: number; data_vencimento?: string | null; descricao?: string | null; valor?: number | null; status?: string | null; data_pagamento?: string | null; }
 interface Agendamento { id: number; data?: string | null; hora?: string | null; servico?: string | null; status?: string | null; }
 
@@ -37,6 +37,8 @@ const DetalhesPaciente: React.FC = () => {
   const [tab, setTab] = useState<'tratamentos'|'financeiro'|'agendamentos'>('tratamentos');
   const [error, setError] = useState<string | null>(null);
   const [, setLoading] = useState<boolean>(true);
+  const [buscaTrat, setBuscaTrat] = useState('');
+  const [statusTrat, setStatusTrat] = useState<string>('Todos');
 
   useEffect(() => {
     const load = async () => {
@@ -55,7 +57,7 @@ const DetalhesPaciente: React.FC = () => {
 
         const { data: tData, error: tErr } = await supabase
           .from('odontograma_tratamentos')
-          .select('id, data_tratamento, dente_numero, dente_numeros, tipo_tratamento, valor, concluido, observacoes, dentista')
+          .select('id, data_tratamento, dente_numero, dente_numeros, tipo_tratamento, valor, concluido, observacoes, dentista, orcamento_id')
           .eq('paciente_id', pacienteId)
           .order('data_tratamento', { ascending: false });
         if (tErr) throw tErr;
@@ -98,6 +100,14 @@ const DetalhesPaciente: React.FC = () => {
       return Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     } catch { return String(value); }
   };
+  const tratamentosFiltrados = useMemo(() => {
+    const term = (buscaTrat || '').toLowerCase();
+    return tratamentos.filter(t => {
+      const matchBusca = !term || (t.tipo_tratamento || '').toLowerCase().includes(term) || (t.observacoes || '').toLowerCase().includes(term);
+      const matchStatus = statusTrat === 'Todos' || (statusTrat === 'Concluído' ? Boolean(t.concluido) : !t.concluido);
+      return matchBusca && matchStatus;
+    });
+  }, [tratamentos, buscaTrat, statusTrat]);
 
   return (
     <div className="container mt-4">
@@ -157,44 +167,51 @@ const DetalhesPaciente: React.FC = () => {
           {tab === 'tratamentos' && (
             <div>
               <h5>Histórico de Tratamentos</h5>
-              {tratamentos.length > 0 ? (
+              <div className="row g-2 mb-3">
+                <div className="col-md-6">
+                  <input className="form-control" placeholder="Buscar por procedimento ou observações" value={buscaTrat} onChange={(e) => setBuscaTrat(e.target.value)} />
+                </div>
+                <div className="col-md-3">
+                  <select className="form-select" value={statusTrat} onChange={(e) => setStatusTrat(e.target.value)}>
+                    <option>Todos</option>
+                    <option>Concluído</option>
+                    <option>Em andamento</option>
+                  </select>
+                </div>
+              </div>
+              {tratamentosFiltrados.length > 0 ? (
                 <div className="table-responsive">
                   <table className="table table-sm table-striped table-hover">
                     <thead>
                       <tr>
                         <th>Data</th>
-                        <th>Dentes</th>
-                        <th>Tratamento</th>
-                        <th>Valor (R$)</th>
+                        <th>Dente</th>
+                        <th>Procedimento</th>
+                        <th>Valor</th>
                         <th>Status</th>
-                        <th>Dentista</th>
                         <th>Observações</th>
+                        <th>Dentista</th>
+                        <th>Orçamento</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {tratamentos.map((t) => (
+                      {tratamentosFiltrados.map(t => (
                         <tr key={t.id}>
-                          <td>{t.data_tratamento ? new Date(t.data_tratamento).toLocaleDateString('pt-BR') : 'N/A'}</td>
-                          <td>{Array.isArray(t.dente_numeros) && t.dente_numeros.length ? t.dente_numeros.join(', ') : (t.dente_numero ?? '-')}</td>
-                          <td>
-                            <span className="type-swatch" style={{ backgroundColor: corPorCategoriaLocal[tipoCategoriaLocal(t.tipo_tratamento)] }} />
-                            {t.tipo_tratamento ?? '-'}
-                          </td>
+                          <td>{t.data_tratamento || '-'}</td>
+                          <td>{t.dente_numero ?? (t.dente_numeros?.join(', ') || '-')}</td>
+                          <td>{t.tipo_tratamento || '-'}</td>
                           <td>{formatCurrency(t.valor)}</td>
-                          <td>
-                            <span className={`badge ${t.concluido ? 'badge-status-concluido' : 'badge-status-andamento'}`}>
-                              {t.concluido ? 'Concluído' : 'Em Andamento'}
-                            </span>
-                          </td>
-                          <td>{t.dentista ?? '-'}</td>
-                          <td>{t.observacoes ?? '-'}</td>
+                          <td>{t.concluido ? 'Concluído' : 'Em andamento'}</td>
+                          <td>{t.observacoes || '-'}</td>
+                          <td>{t.dentista || '-'}</td>
+                          <td>{t.orcamento_id ? (<Link to={`/orcamentos/${t.orcamento_id}`}>#{t.orcamento_id}</Link>) : '-'}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
               ) : (
-                <p className="text-muted">Nenhum tratamento registrado no odontograma.</p>
+                <p className="text-muted">Nenhum tratamento encontrado para os filtros aplicados.</p>
               )}
             </div>
           )}

@@ -148,6 +148,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { to: '/financeiro', label: 'Financeiro', icon: 'fa-dollar-sign' },
     { to: '/importar', label: 'Importar', icon: 'fa-file-import' },
     { to: '/exportar', label: 'Exportar', icon: 'fa-file-export' },
+    { to: '/configuracoes', label: 'Configurações', icon: 'fa-gear' },
     { to: '/relatorios', label: 'Relatórios', icon: 'fa-chart-line' },
   ];
 

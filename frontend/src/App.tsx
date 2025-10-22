@@ -24,6 +24,9 @@ import CadastrarOrcamento from './pages/CadastrarOrcamento'
 import EditarOrcamento from './pages/EditarOrcamento'
 import VisualizarOrcamento from './pages/VisualizarOrcamento'
 import ConsultaPaciente from './pages/ConsultaPaciente'
+import AgendamentosDia from './pages/AgendamentosDia'
+import ImprimirOrcamento from './pages/ImprimirOrcamento'
+import Configuracoes from './pages/Configuracoes'
 // Remover import do App.css
 
 function App() {
@@ -49,6 +52,7 @@ function App() {
       <Route path="/agendamentos" element={<RequireAuth><Layout><Agendamentos /></Layout></RequireAuth>} />
       <Route path="/agendamentos/cadastrar" element={<RequireAuth><Layout><CadastrarAgendamento /></Layout></RequireAuth>} />
       <Route path="/agendamentos/:id/editar" element={<RequireAuth><Layout><EditarAgendamento /></Layout></RequireAuth>} />
+      <Route path="/agendamentos/dia" element={<RequireAuth><Layout><AgendamentosDia /></Layout></RequireAuth>} />
   
       {/* Financeiro */}
       <Route path="/financeiro" element={<RequireAuth><Layout><Financeiro /></Layout></RequireAuth>} />
@@ -57,6 +61,10 @@ function App() {
       <Route path="/orcamentos/cadastrar" element={<RequireAuth><Layout><CadastrarOrcamento /></Layout></RequireAuth>} />
       <Route path="/orcamentos/:id" element={<RequireAuth><Layout><VisualizarOrcamento /></Layout></RequireAuth>} />
       <Route path="/orcamentos/:id/editar" element={<RequireAuth><Layout><EditarOrcamento /></Layout></RequireAuth>} />
+      <Route path="/orcamentos/:id/imprimir" element={<RequireAuth><Layout><ImprimirOrcamento /></Layout></RequireAuth>} />
+
+      {/* Configurações */}
+      <Route path="/configuracoes" element={<RequireAuth><Layout><Configuracoes /></Layout></RequireAuth>} />
 
       {/* Consulta do Paciente */}
       <Route path="/consulta/:id" element={<RequireAuth><Layout><ConsultaPaciente /></Layout></RequireAuth>} />
