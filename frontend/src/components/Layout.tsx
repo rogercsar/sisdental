@@ -144,6 +144,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { to: '/dashboard', label: 'Dashboard', icon: 'fa-gauge-high' },
     { to: '/pacientes', label: 'Pacientes', icon: 'fa-users' },
     { to: '/agendamentos', label: 'Agendamentos', icon: 'fa-calendar-alt' },
+    { to: '/orcamentos', label: 'Orçamentos', icon: 'fa-file-invoice-dollar' },
     { to: '/financeiro', label: 'Financeiro', icon: 'fa-dollar-sign' },
     { to: '/importar', label: 'Importar', icon: 'fa-file-import' },
     { to: '/exportar', label: 'Exportar', icon: 'fa-file-export' },

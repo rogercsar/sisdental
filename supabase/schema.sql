@@ -255,3 +255,33 @@ create policy "Paciente read own documentos" on storage.objects
 -- Atualizações de schema para multi-dentes e dentista
 alter table if exists odontograma_tratamentos add column if not exists dente_numeros jsonb;
 alter table if exists odontograma_tratamentos add column if not exists dentista text;
+
+-- Orçamentos
+create table if not exists orcamentos (
+  id bigserial primary key,
+  paciente_id bigint not null references pacientes(id) on delete cascade,
+  titulo text,
+  data date default now(),
+  valor_total numeric(10,2),
+  status text default 'Em aberto',
+  observacoes text,
+  created_at timestamp with time zone default now()
+);
+
+alter table if exists odontograma_tratamentos add column if not exists orcamento_id bigint references orcamentos(id) on delete set null;
+
+-- Campos de pagamento nos Agendamentos
+alter table if exists agendamentos add column if not exists status_pagamento text;
+alter table if exists agendamentos add column if not exists valor_previsto numeric(10,2);
+
+-- Policies de RLS para orcamentos
+alter table orcamentos enable row level security;
+drop policy if exists "Staff full access orcamentos" on orcamentos;
+drop policy if exists "Paciente read own orcamentos" on orcamentos;
+create policy "Staff full access orcamentos" on orcamentos
+  for all to authenticated
+  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'staff'))
+  with check (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'staff'));
+create policy "Paciente read own orcamentos" on orcamentos
+  for select to authenticated
+  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'paciente' and orcamentos.paciente_id = p.paciente_id));

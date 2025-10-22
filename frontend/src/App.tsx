@@ -19,6 +19,11 @@ import { RequireAuth, RequirePortal } from './components/RouteGuards'
 import ImportarDados from './pages/ImportarDados'
 import Exportar from './pages/Exportar'
 import Relatorios from './pages/Relatorios'
+import Orcamentos from './pages/Orcamentos'
+import CadastrarOrcamento from './pages/CadastrarOrcamento'
+import EditarOrcamento from './pages/EditarOrcamento'
+import VisualizarOrcamento from './pages/VisualizarOrcamento'
+import ConsultaPaciente from './pages/ConsultaPaciente'
 // Remover import do App.css
 
 function App() {
@@ -47,6 +52,14 @@ function App() {
   
       {/* Financeiro */}
       <Route path="/financeiro" element={<RequireAuth><Layout><Financeiro /></Layout></RequireAuth>} />
+      {/* Orçamentos */}
+      <Route path="/orcamentos" element={<RequireAuth><Layout><Orcamentos /></Layout></RequireAuth>} />
+      <Route path="/orcamentos/cadastrar" element={<RequireAuth><Layout><CadastrarOrcamento /></Layout></RequireAuth>} />
+      <Route path="/orcamentos/:id" element={<RequireAuth><Layout><VisualizarOrcamento /></Layout></RequireAuth>} />
+      <Route path="/orcamentos/:id/editar" element={<RequireAuth><Layout><EditarOrcamento /></Layout></RequireAuth>} />
+
+      {/* Consulta do Paciente */}
+      <Route path="/consulta/:id" element={<RequireAuth><Layout><ConsultaPaciente /></Layout></RequireAuth>} />
       {/* Importar Dados */}
       <Route path="/importar" element={<RequireAuth><Layout><ImportarDados /></Layout></RequireAuth>} />
       {/* Exportar */}

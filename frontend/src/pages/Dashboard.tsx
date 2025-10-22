@@ -48,6 +48,8 @@ const Dashboard: React.FC = () => {
   const [agendamentosHojeLista, setAgendamentosHojeLista] = useState<AgendamentoHojeItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [viewMode, setViewMode] = useState<'agenda' | 'cards'>('agenda');
+  const horasDia = useMemo(() => Array.from({ length: 12 }, (_, i) => i + 8), []);
 
   const supabase = useMemo(() => getSupabase(), []);
 
@@ -152,14 +154,64 @@ const Dashboard: React.FC = () => {
 
       <div className="card mb-4 shadow">
         <div className="card-body">
-          <h5 className="card-title mb-3">Agendamentos de Hoje</h5>
-          <div className="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
-            {agendamentosHojeLista.length === 0 ? (
-              <div className="col">
-                <div className="text-center text-muted fst-italic">Nenhum agendamento para hoje.</div>
-              </div>
-            ) : (
-              agendamentosHojeLista.map((ag) => {
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <h5 className="card-title mb-0">Agendamentos de Hoje</h5>
+            <div className="btn-group btn-group-sm" role="group" aria-label="Modo de visualização">
+              <button className={`btn btn-outline-primary ${viewMode === 'agenda' ? 'active' : ''}`} onClick={() => setViewMode('agenda')}>
+                <i className="fas fa-clock me-1"></i> Agenda
+              </button>
+              <button className={`btn btn-outline-primary ${viewMode === 'cards' ? 'active' : ''}`} onClick={() => setViewMode('cards')}>
+                <i className="fas fa-th-large me-1"></i> Cards
+              </button>
+            </div>
+          </div>
+
+          {agendamentosHojeLista.length === 0 ? (
+            <div className="text-center text-muted fst-italic">Nenhum agendamento para hoje.</div>
+          ) : viewMode === 'agenda' ? (
+            <div className="list-group">
+              {horasDia.map((h) => {
+                const items = agendamentosHojeLista.filter(a => (a.hora ?? '').slice(0,2) === String(h).padStart(2, '0'));
+                return (
+                  <div key={h} className="list-group-item">
+                    <div className="d-flex">
+                      <div className="text-muted me-3" style={{ width: '64px' }}>
+                        <strong>{String(h).padStart(2, '0')}:00</strong>
+                      </div>
+                      <div className="flex-grow-1">
+                        {items.length === 0 ? (
+                          <span className="text-muted">—</span>
+                        ) : (
+                          <div className="d-flex flex-column gap-2">
+                            {items.map(ag => {
+                              const cls = statusClasses(ag.status);
+                              return (
+                                <div key={ag.id} className={`p-2 border rounded ${cls.border.replace('border-', 'border border-')}`}>
+                                  <div className="d-flex justify-content-between align-items-center">
+                                    <div>
+                                      <span className="badge bg-light text-dark me-2">{formatHora(ag.hora)}</span>
+                                      <strong>{ag.nome ?? 'Paciente'}</strong> — <span className="text-muted">{ag.servico ?? '-'}</span>
+                                    </div>
+                                    <span className={`badge ${cls.badge}`}>{ag.status ?? 'Sem status'}</span>
+                                  </div>
+                                  {ag.observacoes && <div className="small text-muted mt-1"><i className="fas fa-sticky-note me-1"></i>{ag.observacoes}</div>}
+                                  <div className="text-end mt-2">
+                                    <Link to={`/consulta/${ag.id}`} className="btn btn-outline-success btn-sm"><i className="fas fa-play me-1"></i> Iniciar Consulta</Link>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+              {agendamentosHojeLista.map((ag) => {
                 const cls = statusClasses(ag.status);
                 return (
                   <div className="col" key={ag.id}>
@@ -176,7 +228,7 @@ const Dashboard: React.FC = () => {
                         <div className="text-muted mb-2">{ag.servico ?? '-'}</div>
                         {ag.observacoes && <div className="small text-muted"><i className="fas fa-sticky-note me-1"></i>{ag.observacoes}</div>}
                         <div className="mt-auto text-end">
-                          <Link to={`/pacientes/${ag.paciente_id}/detalhes`} className="btn btn-outline-success btn-sm">
+                          <Link to={`/consulta/${ag.id}`} className="btn btn-outline-success btn-sm">
                             <i className="fas fa-play me-1"></i> Iniciar Consulta
                           </Link>
                         </div>
@@ -184,9 +236,10 @@ const Dashboard: React.FC = () => {
                     </div>
                   </div>
                 );
-              })
-            )}
-          </div>
+              })}
+            </div>
+          )}
+
           <div className="text-center mt-3">
             <Link to="/agendamentos">Ver todos os agendamentos</Link>
           </div>
