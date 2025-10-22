@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams, Link } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { getSupabase } from '../lib/supabase'
 
 interface Orcamento {
@@ -28,7 +28,6 @@ function formatDateISO(d?: string | null): string {
 
 const ImprimirOrcamento: React.FC = () => {
   const { id } = useParams()
-  const navigate = useNavigate()
   const clinicName = import.meta.env.VITE_CLINIC_NAME ?? 'Sisdental Clínica Odontológica'
   const clinicCnpj = import.meta.env.VITE_CLINIC_CNPJ ?? ''
   const clinicPhone = import.meta.env.VITE_CLINIC_PHONE ?? ''

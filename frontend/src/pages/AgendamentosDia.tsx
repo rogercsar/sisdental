@@ -38,7 +38,6 @@ function formatCurrency(n?: number | null) {
 }
 
 const AgendamentosDia: React.FC = () => {
-  const supabase = getSupabase()
   const navigate = useNavigate()
 
   const [date, setDate] = useState<string>(todayISO())
@@ -58,7 +57,9 @@ const AgendamentosDia: React.FC = () => {
   async function load() {
     setLoading(true)
     try {
-      const { data: ags, error } = await supabase
+      const sb = getSupabase()
+      if (!sb) { console.error('Supabase não está configurado. Verifique VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY.'); setLoading(false); return }
+      const { data: ags, error } = await sb
         .from('agendamentos')
         .select('id, paciente_id, data, hora, status, status_pagamento, valor_previsto, observacoes, servico')
         .eq('data', date)
@@ -68,7 +69,7 @@ const AgendamentosDia: React.FC = () => {
 
       const pacienteIds = Array.from(new Set((ags || []).map(a => a.paciente_id)))
       if (pacienteIds.length) {
-        const { data: pacs, error: errP } = await supabase
+        const { data: pacs, error: errP } = await sb
           .from('pacientes')
           .select('id, nome, telefone')
           .in('id', pacienteIds)
@@ -107,7 +108,7 @@ const AgendamentosDia: React.FC = () => {
       const matchServico = servicoFiltro === 'Todos' || (a.servico || '') === servicoFiltro
       return matchBusca && matchStatus && matchServico
     })
-  }, [agendamentos, pacientesMap, busca, statusFiltro])
+  }, [agendamentos, pacientesMap, busca, statusFiltro, servicoFiltro])
 
   function shareWhatsApp(a: Agendamento) {
     const pac = pacientesMap[a.paciente_id]
@@ -121,7 +122,9 @@ const AgendamentosDia: React.FC = () => {
 
   async function excluir(a: Agendamento) {
     if (!confirm('Deseja realmente excluir este agendamento?')) return
-    const { error } = await supabase.from('agendamentos').delete().eq('id', a.id)
+    const sb = getSupabase()
+    if (!sb) { alert('Supabase não está configurado. Verifique VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY.'); return }
+    const { error } = await sb.from('agendamentos').delete().eq('id', a.id)
     if (error) {
       alert('Erro ao excluir: ' + error.message)
     } else {

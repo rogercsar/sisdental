@@ -7,24 +7,7 @@ interface Tratamento { id: number; data_tratamento?: string | null; dente_numero
 interface Lancamento { id: number; data_vencimento?: string | null; descricao?: string | null; valor?: number | null; status?: string | null; data_pagamento?: string | null; }
 interface Agendamento { id: number; data?: string | null; hora?: string | null; servico?: string | null; status?: string | null; }
 
-// Helpers locais para categorização de tratamento e paleta de cores
-const tipoCategoriaLocal = (tipo?: string | null) => {
-  const t = (tipo || '').toLowerCase();
-  if (t.includes('rest')) return 'restauracao';
-  if (t.includes('endo') || t.includes('canal')) return 'endodontia';
-  if (t.includes('extran') || t.includes('extra')) return 'extracao';
-  if (t.includes('coroa') || t.includes('prot') || t.includes('lente')) return 'protetico';
-  if (t.includes('peri') || t.includes('geng')) return 'periodontal';
-  return 'outros';
-};
-const corPorCategoriaLocal: Record<string, string> = {
-  restauracao: '#60a5fa',
-  endodontia: '#a78bfa',
-  extracao: '#ef4444',
-  protetico: '#f59e0b',
-  periodontal: '#10b981',
-  outros: '#6b7280',
-};
+
 
 const DetalhesPaciente: React.FC = () => {
   const { id } = useParams();
