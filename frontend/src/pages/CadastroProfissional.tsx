@@ -1,8 +1,7 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 
 export default function CadastroProfissional() {
-  const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [nome, setNome] = useState('')
@@ -10,7 +9,7 @@ export default function CadastroProfissional() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
-  const [info, setInfo] = useState<string | null>(null)
+  const [info] = useState<string | null>(null)
   const [acceptTerms, setAcceptTerms] = useState(false)
 
   const onSubmit = async (e: React.FormEvent) => {
