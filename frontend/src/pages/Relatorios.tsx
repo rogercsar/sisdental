@@ -108,6 +108,36 @@ export default function Relatorios() {
   useEffect(() => { load() }, [])
   useEffect(() => { load() }, [periodoDe, periodoAte])
 
+  const exportarCSV = () => {
+    const linhas: string[] = []
+    linhas.push('Métrica,Valor')
+    linhas.push(`Pacientes,${pacientesCount}`)
+    linhas.push(`Agendamentos,${agendamentosCount}`)
+    linhas.push(`Tratamentos,${tratamentosCount}`)
+    linhas.push(`Receita Total,${receitaTotal}`)
+    linhas.push(`Receita Concluída,${receitaConcluida}`)
+    linhas.push(`Receita Em Andamento,${receitaEmAndamento}`)
+    linhas.push('')
+    linhas.push('Receita por Dentista')
+    linhas.push('Dentista,Quantidade,Total')
+    porDentista.forEach(d => linhas.push(`${d.dentista},${d.quantidade},${d.total}`))
+    linhas.push('')
+    linhas.push('Receita por Serviço')
+    linhas.push('Serviço,Quantidade,Total')
+    porServico.forEach(s => linhas.push(`${s.tipo},${s.quantidade},${s.total}`))
+    linhas.push('')
+    linhas.push('Top Serviços (Agendamentos)')
+    linhas.push('Serviço,Total')
+    topServicos.forEach(ts => linhas.push(`${ts.servico},${ts.total}`))
+    const blob = new Blob([linhas.join('\n')], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `relatorio_${periodoDe}_a_${periodoAte}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div className="container mt-4">
       <div className="d-flex justify-content-between align-items-center mb-3">
@@ -128,9 +158,23 @@ export default function Relatorios() {
             </div>
             <div className="col-sm-6 text-sm-end">
               {loading && <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>}
+              {!loading && (
+                <div className="d-inline-flex gap-2">
+                  <button className="btn btn-primary btn-sm" onClick={load}>
+                    <i className="fas fa-filter me-1"></i> Filtrar
+                  </button>
+                  <button className="btn btn-outline-secondary btn-sm" onClick={exportarCSV}>
+                    <i className="fas fa-file-export me-1"></i> Exportar CSV
+                  </button>
+                  <button className="btn btn-outline-info btn-sm" onClick={() => window.print()}>
+                    <i className="fas fa-print me-1"></i> Imprimir
+                  </button>
+                </div>
+              )}
             </div>
-          </div>
-        </div>
+
+    </div>
+      </div>
       </div>
 
       <div className="row g-3 mb-3">

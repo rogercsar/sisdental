@@ -28,6 +28,7 @@ const Configuracoes: React.FC = () => {
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [uploading, setUploading] = useState<boolean>(false);
 
   useEffect(() => {
     const load = async () => {
@@ -103,6 +104,36 @@ const Configuracoes: React.FC = () => {
 
   const setField = (key: keyof ClinicaConfig, value: string) => setForm((f) => ({ ...f, [key]: value }));
 
+  const enviarLogo = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    if (!sb) {
+      setError('Supabase não disponível. Configure VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY.');
+      return;
+    }
+    setUploading(true);
+    try {
+      const file = files[0];
+      const ext = (file.name.split('.').pop() || 'png').toLowerCase();
+      const path = `logo/${Date.now()}.${ext}`;
+      const { error: upErr } = await sb.storage.from('branding').upload(path, file, {
+        cacheControl: '3600',
+        upsert: false,
+      });
+      if (upErr) throw upErr;
+      const pub = sb.storage.from('branding').getPublicUrl(path);
+      const publicUrl = (pub?.data?.publicUrl) || (pub as any)?.publicURL || '';
+      if (!publicUrl) throw new Error('Falha ao obter URL pública da logo.');
+      setForm((f) => ({ ...f, logo_url: publicUrl }));
+      setSuccess('Logo enviada com sucesso.');
+    } catch (e: any) {
+      setError(e?.message || 'Falha ao enviar logo.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removerLogo = () => setField('logo_url', '');
+
   return (
     <div className="container py-3">
       <h2 className="mb-3">Configurações</h2>
@@ -174,14 +205,25 @@ const Configuracoes: React.FC = () => {
                 />
               </div>
               <div className="col-md-12">
-                <label className="form-label">Logo (URL)</label>
-                <input
-                  type="url"
-                  className="form-control"
-                  value={form.logo_url}
-                  onChange={(e) => setField('logo_url', e.target.value)}
-                  placeholder="https://.../logo.png"
-                />
+                <label className="form-label">Logo da Clínica</label>
+                <div className="d-flex align-items-center gap-2">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="form-control"
+                    onChange={(e) => enviarLogo(e.target.files)}
+                    disabled={uploading}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-outline-danger"
+                    onClick={removerLogo}
+                    disabled={uploading}
+                  >
+                    Remover
+                  </button>
+                </div>
+                <div className="form-text">A imagem será enviada para storage público e aplicada automaticamente.</div>
               </div>
             </div>
 
@@ -207,6 +249,7 @@ const Configuracoes: React.FC = () => {
                 ) : (
                   <div className="text-muted small">Sem logo</div>
                 )}
+                {uploading && <div className="small text-muted mt-2">Enviando imagem...</div>}
               </div>
               <div className="col">
                 <div className="text-muted small">Pré-visualização cabeçalho da impressão</div>

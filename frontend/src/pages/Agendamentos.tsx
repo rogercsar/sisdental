@@ -15,7 +15,7 @@ interface Agendamento {
   valor_previsto?: number | null
 }
 
-interface Paciente { id: number; nome: string }
+interface Paciente { id: number; nome: string; telefone?: string | null }
 
 export default function Agendamentos() {
   const sb = getSupabase()
@@ -35,7 +35,7 @@ export default function Agendamentos() {
     try {
       const [a, p] = await Promise.all([
         sb.from('agendamentos').select('*').order('data', { ascending: false }).order('hora', { ascending: true }),
-        sb.from('pacientes').select('id, nome').order('nome', { ascending: true }),
+        sb.from('pacientes').select('id, nome, telefone').order('nome', { ascending: true }),
       ])
       if (a.error) setError(a.error.message); else setAgendamentos(a.data as Agendamento[])
       if (p.error) setError(p.error.message); else setPacientes(p.data as Paciente[])
@@ -132,8 +132,8 @@ export default function Agendamentos() {
                           <div className="btn-group btn-group-sm" role="group">
                             <Link to={`/agendamentos/${a.id}/editar`} className="btn btn-outline-secondary" title="Visualizar"><i className="fas fa-eye"></i></Link>
                             <Link to={`/agendamentos/${a.id}/editar`} className="btn btn-outline-primary" title="Editar"><i className="fas fa-edit"></i></Link>
-                            <Link to={`/consulta/${a.id}`} className="btn btn-outline-success" title="Consulta"><i className="fas fa-notes-medical"></i></Link>
-                            <button className="btn btn-outline-success" onClick={() => { const texto = `Agendamento #${a.id}\\nPaciente: ${nomePaciente(a.paciente_id)}\\nServiço: ${a.servico}\\nData: ${a.data} ${(a.hora || '').slice(0,5)}\\nStatus: ${a.status ?? '-'}\\nPagamento: ${a.status_pagamento ?? '-'}`; window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank') }} title="Compartilhar WhatsApp"><i className="fab fa-whatsapp"></i></button>
+                            <Link to={`/consulta/${a.id}`} className="btn btn-outline-success" title="Visualizar"><i className="fas fa-notes-medical"></i></Link>
+                            <button className="btn btn-outline-success" onClick={() => { const texto = `Agendamento #${a.id}\nPaciente: ${nomePaciente(a.paciente_id)}\nServiço: ${a.servico}\nData: ${a.data} ${(a.hora || '').slice(0,5)}\nStatus: ${a.status ?? '-'}\nPagamento: ${a.status_pagamento ?? '-'}`; const pac = pacientes.find(p => p.id === a.paciente_id); const digits = (pac?.telefone || '').replace(/\D/g, ''); const phone = digits ? (digits.startsWith('55') ? digits : `55${digits}`) : ''; const base = phone ? `https://wa.me/${phone}` : 'https://wa.me/'; window.open(`${base}?text=${encodeURIComponent(texto)}`, '_blank') }} title="Compartilhar WhatsApp"><i className="fab fa-whatsapp"></i></button>
                             <button className="btn btn-outline-info" onClick={() => { const html = `<!doctype html><html><head><meta charset=\\"utf-8\\"/><title>Agendamento #${a.id}</title><link rel=\\"stylesheet\\" href=\\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css\\" /></head><body class=\\"p-4\\"><h3>Agendamento #${a.id}</h3><p><strong>Paciente:</strong> ${nomePaciente(a.paciente_id)}</p><p><strong>Data/Hora:</strong> ${a.data} ${(a.hora || '').slice(0,5)}</p><p><strong>Serviço:</strong> ${a.servico}</p><p><strong>Status:</strong> ${a.status ?? '-'}</p><p><strong>Pagamento:</strong> ${a.status_pagamento ?? '-'}</p><p><strong>Observações:</strong> ${a.observacoes ?? '-'}</p><script>window.onload = () => { window.print(); }</script></body></html>`; const w = window.open('', '_blank'); if (w) { w.document.open(); w.document.write(html); w.document.close(); } }} title="Compartilhar PDF"><i className="fas fa-file-pdf"></i></button>
                             <button className="btn btn-outline-danger" onClick={async () => { if (!sb) return; if (!confirm(`Excluir agendamento #${a.id}?`)) return; const { error } = await sb.from('agendamentos').delete().eq('id', a.id); if (error) { alert(error.message); return } ; setAgendamentos(prev => prev.filter(x => x.id !== a.id)) }} title="Excluir"><i className="fas fa-trash"></i></button>
                           </div>

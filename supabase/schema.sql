@@ -312,3 +312,30 @@ create policy "Staff full access clinica_config" on clinica_config
 insert into clinica_config (id, nome, logo_url, cnpj, telefone, endereco)
 values (1, null, null, null, null, null)
 on conflict (id) do nothing;
+
+-- Branding: bucket público para logos da clínica
+insert into storage.buckets (id, name, public)
+values ('branding', 'branding', true)
+on conflict (id) do nothing;
+
+-- Policies para o bucket 'branding' (staff pode gerenciar)
+drop policy if exists "Branding select staff" on storage.objects;
+drop policy if exists "Branding insert staff" on storage.objects;
+drop policy if exists "Branding update staff" on storage.objects;
+drop policy if exists "Branding delete staff" on storage.objects;
+
+create policy "Branding select staff" on storage.objects
+  for select to authenticated
+  using (bucket_id = 'branding' and exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'staff'));
+
+create policy "Branding insert staff" on storage.objects
+  for insert to authenticated
+  with check (bucket_id = 'branding' and exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'staff'));
+
+create policy "Branding update staff" on storage.objects
+  for update to authenticated
+  using (bucket_id = 'branding' and exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'staff'));
+
+create policy "Branding delete staff" on storage.objects
+  for delete to authenticated
+  using (bucket_id = 'branding' and exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'staff'));
