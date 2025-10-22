@@ -72,10 +72,6 @@ function mergeStatusWithTiming(status: string | null, t: 'distante'|'proxima'|'a
   if (t === 'distante') return { border: 'border-info', badge: base.badge };
   return base;
 }
-function formatISODateBR(dateISO: string): string {
-  const [y, m, d] = dateISO.split('-').map(Number);
-  return `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${y}`;
-}
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -94,7 +90,7 @@ const Dashboard: React.FC = () => {
   const [calYear, setCalYear] = useState<number>(now.getFullYear());
   const [calMonth, setCalMonth] = useState<number>(now.getMonth()); // 0-11
   const [calDataMap, setCalDataMap] = useState<Map<string, AgendamentoHojeItem[]>>(new Map());
-  const [calSelectedDate, setCalSelectedDate] = useState<string | null>(todayISO());
+  
 
   const supabase = useMemo(() => getSupabase(), []);
 
@@ -262,12 +258,12 @@ const Dashboard: React.FC = () => {
               {calCells.slice(row * 7, row * 7 + 7).map((dayNum, idx) => {
                 const dateKey = dayNum ? `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}` : `empty-${row}-${idx}`;
                 const count = dayNum ? (calDataMap.get(dateKey)?.length ?? 0) : 0;
-                const selected = dayNum ? (calSelectedDate === dateKey) : false;
+                
                 return (
                   <div key={dateKey} className="col">
                     {dayNum ? (
                       <button
-                    className={`w-100 btn ${selected ? 'btn-primary' : 'btn-outline-secondary'}`}
+                    className="w-100 btn btn-outline-secondary"
                     onClick={() => navigate(`/agendamentos/dia?data=${dateKey}`)}
                     style={{ minHeight: '120px' }}
                   >
