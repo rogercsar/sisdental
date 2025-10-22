@@ -27,6 +27,9 @@ import ConsultaPaciente from './pages/ConsultaPaciente'
 import AgendamentosDia from './pages/AgendamentosDia'
 import ImprimirOrcamento from './pages/ImprimirOrcamento'
 import Configuracoes from './pages/Configuracoes'
+import Cadastro from './pages/Cadastro'
+import CadastroBasico from './pages/CadastroBasico'
+import CadastroProfissional from './pages/CadastroProfissional'
 // Remover import do App.css
 
 function App() {
@@ -76,6 +79,9 @@ function App() {
       <Route path="/relatorios" element={<RequireAuth><Layout><Relatorios /></Layout></RequireAuth>} />
       {/* Portal do Paciente */}
       <Route path="/portal/home" element={<RequirePortal><Layout><PortalHome /></Layout></RequirePortal>} />
+      <Route path="/cadastro" element={<Cadastro />} />
+      <Route path="/cadastro/basico" element={<CadastroBasico />} />
+      <Route path="/cadastro/profissional" element={<CadastroProfissional />} />
     </Routes>
   )
 }

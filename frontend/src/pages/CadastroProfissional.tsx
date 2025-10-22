@@ -1,49 +1,66 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { getSupabase } from '../lib/supabase'
 
-export default function Login() {
+export default function CadastroProfissional() {
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [nome, setNome] = useState('')
+  const [clinica, setClinica] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
+  const [info, setInfo] = useState<string | null>(null)
 
-  useEffect(() => {
-    const sb = getSupabase()
-    sb?.auth.getSession().then(({ data }) => {
-      if (data.session) navigate('/dashboard')
-    }).catch(() => {})
-  }, [])
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
     const sb = getSupabase()
     if (!sb) { setError('Supabase não configurado.'); setLoading(false); return }
-    const { error } = await sb.auth.signInWithPassword({ email, password })
-    setLoading(false)
-    if (error) {
-      setError(error.message)
-    } else {
-      navigate('/dashboard')
+    try {
+      const { data, error } = await sb.auth.signUp({
+        email,
+        password,
+        options: { data: { plano: 'profissional', nome, clinica } }
+      })
+      if (error) throw error
+      if (data?.session) {
+        setInfo('Cadastro realizado! Você já pode fazer login.')
+        setTimeout(() => navigate('/login'), 1200)
+      } else {
+        setInfo('Cadastro realizado! Verifique seu e-mail para confirmar sua conta.')
+      }
+    } catch (e: any) {
+      setError(e.message ?? String(e))
+    } finally {
+      setLoading(false)
     }
   }
 
   return (
     <div className="container py-5 min-vh-100 d-flex align-items-center">
       <div className="row justify-content-center w-100">
-        <div className="col-sm-10 col-md-8 col-lg-5">
+        <div className="col-sm-10 col-md-8 col-lg-6">
           <div className="card shadow-sm border-0">
             <div className="card-body p-4">
               <div className="text-center mb-3">
-                <i className="fas fa-tooth fa-2x text-primary"></i>
-                <h4 className="mt-2 mb-0">Sisdental</h4>
-                <p className="text-muted small">Acesse o painel administrativo</p>
+                <i className="fas fa-user-tie fa-2x text-primary"></i>
+                <h4 className="mt-2 mb-0">Cadastro (Plano Profissional)</h4>
+                <p className="text-muted small">Recursos avançados para sua clínica</p>
               </div>
               {error && <div className="alert alert-danger">{error}</div>}
+              {info && <div className="alert alert-success">{info}</div>}
               <form onSubmit={onSubmit} className="needs-validation" noValidate>
+                <div className="form-floating mb-3">
+                  <input id="nome" className="form-control" type="text" placeholder="Seu nome" value={nome} onChange={(e) => setNome(e.target.value)} required />
+                  <label htmlFor="nome">Nome</label>
+                </div>
+                <div className="form-floating mb-3">
+                  <input id="clinica" className="form-control" type="text" placeholder="Nome da clínica" value={clinica} onChange={(e) => setClinica(e.target.value)} required />
+                  <label htmlFor="clinica">Clínica</label>
+                </div>
                 <div className="form-floating mb-3">
                   <input id="email" className="form-control" type="email" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
                   <label htmlFor="email">Email</label>
@@ -58,16 +75,15 @@ export default function Login() {
                   </button>
                 </div>
                 <button type="submit" className="btn btn-primary w-100" disabled={loading}>
-                  {loading ? (<><span className="spinner-border spinner-border-sm me-2"></span>Entrando...</>) : 'Entrar'}
+                  {loading ? (<><span className="spinner-border spinner-border-sm me-2"></span>Cadastrando...</>) : 'Cadastrar'}
                 </button>
               </form>
               <div className="mt-3 text-center">
-                <small className="text-muted">Não tem conta?</small>
-                <div><Link to="/cadastro">Cadastre-se</Link></div>
+                <Link to="/cadastro">Voltar aos Planos</Link>
               </div>
               <div className="mt-2 text-center">
-                <small className="text-muted">Acesso do Paciente</small>
-                <div><Link to="/portal/login">Entrar no Portal</Link></div>
+                <small className="text-muted">Já tem conta?</small>
+                <div><Link to="/login">Entrar</Link></div>
               </div>
             </div>
           </div>
