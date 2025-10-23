@@ -1,5 +1,8 @@
 from flask import Flask, render_template, request, redirect, flash, url_for, session, jsonify # Adicionado jsonify
-from flask_mysqldb import MySQL
+try:
+    from flask_mysqldb import MySQL
+except Exception:
+    MySQL = None
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import timedelta, date, datetime, time
 
@@ -25,6 +28,61 @@ import datetime
 import os
 import uuid
 import requests
+from supabase import create_client, Client
+
+# Carrega variáveis de ambiente do arquivo .env (se existir) sem dependências externas
+def _load_env(path=None):
+    try:
+        env_path = path or os.path.join(os.path.dirname(__file__), '.env')
+        if os.path.exists(env_path):
+            with open(env_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith('#'):
+                        continue
+                    if '=' in line:
+                        k, v = line.split('=', 1)
+                        k = k.strip()
+                        v = v.strip().strip('"').strip("'")
+                        os.environ.setdefault(k, v)
+    except Exception:
+        # Evita falhar caso .env não exista ou haja erro de leitura
+        pass
+
+_load_env()
+
+# Supabase client (Service Role para escritas no backend)
+SUPABASE_URL = os.getenv('SUPABASE_URL')
+SUPABASE_SERVICE_ROLE_KEY = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
+_supabase_client = None
+
+def get_supabase():
+    global _supabase_client
+    if _supabase_client is not None:
+        return _supabase_client
+    if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+        return None
+    try:
+        _supabase_client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+        return _supabase_client
+    except Exception:
+        return None
+
+# Cliente público para operações de Auth (login)
+SUPABASE_ANON_KEY = os.getenv('SUPABASE_ANON_KEY')
+_supabase_public = None
+
+def get_supabase_public():
+    global _supabase_public
+    if _supabase_public is not None:
+        return _supabase_public
+    if not SUPABASE_URL or not SUPABASE_ANON_KEY:
+        return None
+    try:
+        _supabase_public = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+        return _supabase_public
+    except Exception:
+        return None
 
 app = Flask(__name__)
 app.secret_key = 'chave_top_secreta'
@@ -36,7 +94,7 @@ app.config['MYSQL_USER'] = 'root'
 app.config['MYSQL_PASSWORD'] = 'Admin@147!'
 app.config['MYSQL_DB'] = 'sisdental'
 app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'documentos_storage') # Define o caminho completo
-mysql = MySQL(app)
+mysql = MySQL(app) if MySQL else None
 
 # Cria a pasta se ela não existir
 if not os.path.exists(app.config['UPLOAD_FOLDER']):
@@ -94,26 +152,23 @@ def gerar_atestado(paciente_id):
         print("--- [Gerar Atestado] ERRO: Não logado (staff) ---")
         flash("Acesso não autorizado.", "danger"); return redirect(url_for('login'))
 
-    cur = None
     try:
-        print("--- [Gerar Atestado] Abrindo cursor BD ---") # Log 2
-        cur = mysql.connection.cursor()
+        sb = get_supabase()
+        if sb is None:
+            print("--- [Gerar Atestado] ERRO: Supabase não configurado ---")
+            flash("Configuração do Supabase ausente.", "danger"); return redirect(url_for('pacientes'))
 
-        # Busca paciente e converte para dict
-        print("--- [Gerar Atestado] Buscando paciente... ---") # Log 3
-        cur.execute("SELECT id, nome FROM pacientes WHERE id = %s", (paciente_id,))
-        paciente_tuple = cur.fetchone() # Pega como tupla
-        if not paciente_tuple:
-            print("--- [Gerar Atestado] ERRO: Paciente não encontrado ---")
+        # Busca paciente via Supabase
+        print("--- [Gerar Atestado] Buscando paciente (Supabase)... ---")
+        res = sb.table('pacientes').select('id, nome').eq('id', paciente_id).limit(1).execute()
+        rows = getattr(res, 'data', None) if res is not None else None
+        if not rows:
+            print("--- [Gerar Atestado] ERRO: Paciente não encontrado (Supabase) ---")
             flash("Paciente não encontrado.", "danger"); return redirect(url_for('pacientes'))
 
-        # *** INÍCIO DA CONVERSÃO MANUAL ***
-        paciente_cols = [col[0] for col in cur.description]
-        paciente = dict(zip(paciente_cols, paciente_tuple))
-        # *** FIM DA CONVERSÃO MANUAL ***
-
-        nome_paciente = paciente['nome'] # Agora 'paciente' é um dict
-        print(f"--- [Gerar Atestado] Paciente encontrado: {nome_paciente} ---") # Log 4
+        paciente = rows[0]
+        nome_paciente = paciente.get('nome') or ''
+        print(f"--- [Gerar Atestado] Paciente encontrado: {nome_paciente} ---")
 
         data_atual_obj = datetime.datetime.now()
         data_atual_str = data_atual_obj.strftime("%d de %B de %Y")
@@ -150,15 +205,33 @@ def gerar_atestado(paciente_id):
             f.write(pdf_content)
         print(f"--- [Gerar Atestado] Arquivo salvo com sucesso. ---") # Log 9
 
-        print(f"--- [Gerar Atestado] Tentando inserir no BD... ---") # Log 10
-        sql_insert = """
-            INSERT INTO documentos_paciente (paciente_id, tipo_documento, data_geracao, nome_arquivo, caminho_relativo, descricao)
-            VALUES (%s, %s, %s, %s, %s, %s)"""
+        print(f"--- [Gerar Atestado] Enviando para Supabase Storage e registrando metadados... ---")
         descricao_doc = f"Atestado gerado em {data_atual_obj.strftime('%d/%m/%Y')}"
-        params_insert = (paciente_id, 'atestado', data_atual_obj, nome_arquivo, caminho_relativo, descricao_doc)
-        cur.execute(sql_insert, params_insert)
-        mysql.connection.commit()
-        print(f"--- [Gerar Atestado] Registro ID {cur.lastrowid} inserido no BD. ---") # Log 11
+
+        # Caminho no bucket 'documentos' obedecendo às policies (pacientes/<id>/...)
+        supabase_path = f"pacientes/{paciente_id}/{nome_arquivo}"
+        try:
+            # Upload do PDF ao Storage
+            upload_res = sb.storage.from_("documentos").upload(supabase_path, pdf_content, {
+                "contentType": "application/pdf"
+            })
+            print(f"--- [Gerar Atestado] Upload Storage: {upload_res} ---")
+        except Exception as e_up:
+            print(f"--- [Gerar Atestado] ERRO no upload para Storage: {e_up} ---")
+
+        try:
+            # Registro de metadados no Supabase
+            meta_res = sb.table('documentos_paciente').insert({
+                'paciente_id': paciente_id,
+                'tipo_documento': 'atestado',
+                'data_geracao': data_atual_obj.isoformat(),
+                'nome_arquivo': nome_arquivo,
+                'storage_path': supabase_path,
+                'descricao': descricao_doc
+            }).execute()
+            print(f"--- [Gerar Atestado] Metadados inseridos: {getattr(meta_res, 'data', None)} ---")
+        except Exception as e_meta:
+            print(f"--- [Gerar Atestado] ERRO ao inserir metadados: {e_meta} ---")
         # --- Fim Salvar/Registrar ---
 
         print("--- [Gerar Atestado] Enviando arquivo para download... ---") # Log 12
@@ -192,27 +265,23 @@ def gerar_receita(paciente_id):
         print("--- [Gerar Receita] ERRO: Não logado (staff) ---")
         flash("Acesso não autorizado.", "danger"); return redirect(url_for('login'))
 
-    cur = None
     try:
-        print("--- [Gerar Receita] Abrindo cursor BD ---") # Log R2
-        cur = mysql.connection.cursor()
+        sb = get_supabase()
+        if sb is None:
+            print("--- [Gerar Receita] ERRO: Supabase não configurado ---")
+            flash("Configuração do Supabase ausente.", "danger"); return redirect(url_for('pacientes'))
 
-        # Busca paciente e converte para dict
-        print("--- [Gerar Receita] Buscando paciente... ---") # Log R3
-        # Seleciona apenas as colunas necessárias (id, nome)
-        cur.execute("SELECT id, nome FROM pacientes WHERE id = %s", (paciente_id,))
-        paciente_tuple = cur.fetchone() # Pega como tupla
-        if not paciente_tuple:
-            print("--- [Gerar Receita] ERRO: Paciente não encontrado ---")
+        # Busca paciente via Supabase
+        print("--- [Gerar Receita] Buscando paciente (Supabase)... ---")
+        res = sb.table('pacientes').select('id, nome').eq('id', paciente_id).limit(1).execute()
+        rows = getattr(res, 'data', None) if res is not None else None
+        if not rows:
+            print("--- [Gerar Receita] ERRO: Paciente não encontrado (Supabase) ---")
             flash("Paciente não encontrado.", "danger"); return redirect(url_for('pacientes'))
 
-        # *** INÍCIO DA CONVERSÃO MANUAL ***
-        paciente_cols = [col[0] for col in cur.description]
-        paciente = dict(zip(paciente_cols, paciente_tuple))
-        # *** FIM DA CONVERSÃO MANUAL ***
-
-        nome_paciente = paciente['nome'] # Agora 'paciente' é um dict
-        print(f"--- [Gerar Receita] Paciente encontrado: {nome_paciente} ---") # Log R4
+        paciente = rows[0]
+        nome_paciente = paciente.get('nome') or ''
+        print(f"--- [Gerar Receita] Paciente encontrado: {nome_paciente} ---")
 
         data_atual_obj = datetime.datetime.now()
         data_atual_str = data_atual_obj.strftime("%d/%m/%Y")
@@ -251,15 +320,33 @@ def gerar_receita(paciente_id):
             f.write(pdf_content)
         print(f"--- [Gerar Receita] Arquivo salvo com sucesso. ---") # Log R9
 
-        print(f"--- [Gerar Receita] Tentando inserir no BD... ---") # Log R10
-        sql_insert = """
-            INSERT INTO documentos_paciente (paciente_id, tipo_documento, data_geracao, nome_arquivo, caminho_relativo, descricao)
-            VALUES (%s, %s, %s, %s, %s, %s)"""
+        print(f"--- [Gerar Receita] Enviando para Supabase Storage e registrando metadados... ---")
         descricao_doc = f"Receita gerada em {data_atual_obj.strftime('%d/%m/%Y')}"
-        params_insert = (paciente_id, 'receita', data_atual_obj, nome_arquivo, caminho_relativo, descricao_doc)
-        cur.execute(sql_insert, params_insert)
-        mysql.connection.commit()
-        print(f"--- [Gerar Receita] Registro ID {cur.lastrowid} inserido no BD. ---") # Log R11
+
+        # Caminho no bucket 'documentos' obedecendo às policies (pacientes/<id>/...)
+        supabase_path = f"pacientes/{paciente_id}/{nome_arquivo}"
+        try:
+            # Upload do PDF ao Storage
+            upload_res = sb.storage.from_("documentos").upload(supabase_path, pdf_content, {
+                "contentType": "application/pdf"
+            })
+            print(f"--- [Gerar Receita] Upload Storage: {upload_res} ---")
+        except Exception as e_up:
+            print(f"--- [Gerar Receita] ERRO no upload para Storage: {e_up} ---")
+
+        try:
+            # Registro de metadados no Supabase
+            meta_res = sb.table('documentos_paciente').insert({
+                'paciente_id': paciente_id,
+                'tipo_documento': 'receita',
+                'data_geracao': data_atual_obj.isoformat(),
+                'nome_arquivo': nome_arquivo,
+                'storage_path': supabase_path,
+                'descricao': descricao_doc
+            }).execute()
+            print(f"--- [Gerar Receita] Metadados inseridos: {getattr(meta_res, 'data', None)} ---")
+        except Exception as e_meta:
+            print(f"--- [Gerar Receita] ERRO ao inserir metadados: {e_meta} ---")
         # --- Fim Salvar/Registrar ---
 
         print("--- [Gerar Receita] Enviando arquivo para download... ---") # Log R12
@@ -287,55 +374,82 @@ def gerar_receita(paciente_id):
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        username = request.form['username']
+        email = request.form['username']
         password = request.form['password']
-        cur = None
         try:
-            cur = mysql.connection.cursor()
-            cur.execute("SELECT * FROM users WHERE username = %s", (username,))
-            user = cur.fetchone()
-
-            if user:
-                flash('Nome de usuário já existe.', 'danger')
+            sb = get_supabase()
+            if sb is None:
+                flash('Configuração do Supabase ausente.', 'danger')
                 return render_template('register.html')
-
-            hashed_password = generate_password_hash(password)
-            cur.execute("INSERT INTO users (username, password) VALUES (%s, %s)", (username, hashed_password))
-            mysql.connection.commit()
+            # Cria usuário no Supabase Auth (via Service Role Admin)
+            try:
+                res = sb.auth.admin.create_user({
+                    'email': email,
+                    'password': password,
+                    'email_confirm': True
+                })
+                user = getattr(res, 'user', None)
+                user_id = user.id if user else None
+            except Exception as e_admin:
+                flash(f'Erro ao criar usuário: {e_admin}', 'danger')
+                return render_template('register.html')
+            # Cria/atualiza profile com role staff
+            if user_id:
+                try:
+                    sb.table('profiles').upsert({
+                        'id': user_id,
+                        'role': 'staff',
+                        'full_name': email
+                    }).execute()
+                except Exception:
+                    pass
             flash('Cadastro feito com sucesso! Faça login.', 'success')
             return redirect(url_for('login'))
         except Exception as e:
             flash(f"Erro durante o registro: {e}", "danger")
             return render_template('register.html')
-        finally:
-            if cur:
-                cur.close()
     return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form['username']
+        email = request.form['username']
         password = request.form['password']
-        cur = None
         try:
-            cur = mysql.connection.cursor()
-            cur.execute("SELECT * FROM users WHERE username = %s", (username,))
-            user = cur.fetchone()
-
-            if user and check_password_hash(user[2], password):
-                session.permanent = True
-                session['logado'] = True
-                session['usuario'] = username
-                flash('Login realizado com sucesso!', 'success')
-                return redirect(url_for('home'))
-            else:
+            pub = get_supabase_public()
+            sb = get_supabase()
+            if pub is None or sb is None:
+                flash('Configuração do Supabase ausente.', 'danger')
+                return render_template('login.html')
+            # Faz login via Supabase Auth (cliente público)
+            try:
+                auth_res = pub.auth.sign_in_with_password({
+                    'email': email,
+                    'password': password
+                })
+                user = getattr(auth_res, 'user', None)
+                user_id = user.id if user else None
+            except Exception as e_auth:
                 flash('Usuário ou senha inválidos.', 'danger')
+                return render_template('login.html')
+            # Busca perfil para role
+            role = None; full_name = None
+            try:
+                prof_res = sb.table('profiles').select('id, role, full_name').eq('id', user_id).limit(1).execute()
+                prof_rows = getattr(prof_res, 'data', None) or []
+                if prof_rows:
+                    role = prof_rows[0].get('role'); full_name = prof_rows[0].get('full_name')
+            except Exception:
+                pass
+            session.permanent = True
+            session['logado'] = True
+            session['usuario'] = full_name or email
+            session['usuario_id'] = user_id
+            session['usuario_role'] = role
+            flash('Login realizado com sucesso!', 'success')
+            return redirect(url_for('home'))
         except Exception as e:
             flash(f"Erro durante o login: {e}", "danger")
-        finally:
-            if cur:
-                cur.close()
     return render_template('login.html')
 
 @app.route('/')
@@ -344,63 +458,54 @@ def home():
         return redirect(url_for('login'))
 
     nome_usuario = session.get('usuario', 'Visitante')
-    cur = None
-    # Dicionário para guardar os dados do dashboard
+    sb = get_supabase()
+    today = date.today().isoformat()
+
     dashboard_data = {
         'total_pacientes': 0,
         'consultas_hoje': 0,
         'total_agendamentos': 0,
-        'agendamentos_hoje_lista': [] # NOVA LISTA
+        'agendamentos_hoje_lista': []
     }
 
     try:
-        cur = mysql.connection.cursor() # Pode ser configurado para retornar dicts: mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        # 1. Total de Pacientes
+        tp_res = sb.table('pacientes').select('id', count='exact').execute()
+        dashboard_data['total_pacientes'] = getattr(tp_res, 'count', 0) or 0
 
-        # 1. Contar Total de Pacientes
-        cur.execute("SELECT COUNT(*) FROM pacientes")
-        result = cur.fetchone()
-        if result:
-            dashboard_data['total_pacientes'] = result[0]
+        # 2. Consultas de hoje
+        ch_res = sb.table('agendamentos').select('id', count='exact').eq('data', today).execute()
+        dashboard_data['consultas_hoje'] = getattr(ch_res, 'count', 0) or 0
 
-        # 2. Contar Consultas Agendadas para Hoje
-        cur.execute("SELECT COUNT(*) FROM agendamentos WHERE data = CURDATE()")
-        result = cur.fetchone()
-        if result:
-            dashboard_data['consultas_hoje'] = result[0]
+        # 3. Total de agendamentos
+        ta_res = sb.table('agendamentos').select('id', count='exact').execute()
+        dashboard_data['total_agendamentos'] = getattr(ta_res, 'count', 0) or 0
 
-        # 3. Contar Total de Agendamentos
-        cur.execute("SELECT COUNT(*) FROM agendamentos")
-        result = cur.fetchone()
-        if result:
-            dashboard_data['total_agendamentos'] = result[0]
-
-        # 4. Buscar Lista de Agendamentos de Hoje (NOVO)
-        # Seleciona nome do paciente, serviço e hora formatada (HH:MM)
-        # Junta agendamentos com pacientes
-        # Filtra pela data atual (CURDATE())
-        # Ordena pela hora
-        # Limita a 5 resultados (ajuste conforme necessário)
-        cur.execute("""
-            SELECT p.id AS paciente_id, p.nome, a.servico, TIME_FORMAT(a.hora, '%H:%i') AS hora_formatada
-            FROM agendamentos a
-            JOIN pacientes p ON a.paciente_id = p.id
-            WHERE a.data = CURDATE()
-            ORDER BY a.hora ASC
-            LIMIT 5
-        """)
-        # Pega os nomes das colunas para criar dicionários
-        columns = [col[0] for col in cur.description]
-        agendamentos_hoje = [dict(zip(columns, row)) for row in cur.fetchall()]
-        dashboard_data['agendamentos_hoje_lista'] = agendamentos_hoje
+        # 4. Lista de agendamentos de hoje com nome do paciente
+        hoje_res = sb.table('agendamentos')\
+            .select("hora, servico, pacientes:paciente_id(id, nome)")\
+            .eq('data', today)\
+            .order('hora', ascending=True)\
+            .limit(5)\
+            .execute()
+        rows = getattr(hoje_res, 'data', None) or []
+        ag_list = []
+        for a in rows:
+            pac = (a.get('pacientes') or {})
+            hora_raw = a.get('hora')
+            hora_fmt = (hora_raw or '')[:5]
+            ag_list.append({
+                'paciente_id': pac.get('id'),
+                'nome': pac.get('nome'),
+                'servico': a.get('servico'),
+                'hora_formatada': hora_fmt
+            })
+        dashboard_data['agendamentos_hoje_lista'] = ag_list
 
     except Exception as e:
-        print(f"Erro ao buscar dados do dashboard: {e}")
+        print(f"Erro ao buscar dados do dashboard via Supabase: {e}")
         traceback.print_exc()
         flash("Não foi possível carregar os dados do dashboard.", "warning")
-
-    finally:
-        if cur:
-           cur.close()
 
     # Passa o dicionário 'dashboard_data' para o template
     return render_template('index.html', nome=nome_usuario, dashboard=dashboard_data)
@@ -423,24 +528,22 @@ def cadastrar_paciente():
         cpf = request.form['cpf']
         telefone = request.form['telefone']
         email = request.form['email']
-        data_nascimento = request.form['data_nascimento'] or None # Aceita data vazia
-        cur = None
+        data_nascimento = request.form['data_nascimento'] or None
+        sb = get_supabase()
         try:
-            cur = mysql.connection.cursor()
-            cur.execute("INSERT INTO pacientes (nome, cpf, telefone, email, data_nascimento) VALUES (%s, %s, %s, %s, %s)",
-                        (nome, cpf, telefone, email, data_nascimento))
-            mysql.connection.commit()
+            payload = {
+                'nome': nome,
+                'cpf': cpf or None,
+                'telefone': telefone or None,
+                'email': email or None,
+                'data_nascimento': data_nascimento
+            }
+            sb.table('pacientes').insert(payload).execute()
             flash('Paciente cadastrado com sucesso!', 'success')
-            # Redireciona para a lista após cadastrar
             return redirect(url_for('pacientes'))
         except Exception as e:
-            mysql.connection.rollback()
             flash(f'Erro ao cadastrar paciente: {str(e)}', 'danger')
-            # Retorna para o formulário com os dados preenchidos (se possível)
             return render_template('cadastrar_paciente.html', form_data=request.form)
-        finally:
-            if cur:
-                cur.close()
     return render_template('cadastrar_paciente.html')
 
 @app.route('/pacientes')
@@ -450,46 +553,41 @@ def pacientes():
 
     busca = request.args.get('busca', '')
     pagina = request.args.get('pagina', 1, type=int)
-    por_pagina = 10 # Aumentado para 10
+    por_pagina = 10
     offset = (pagina - 1) * por_pagina
-    cur = None
+
     try:
-        cur = mysql.connection.cursor()
-        query_base = "SELECT * FROM pacientes "
-        count_query_base = "SELECT COUNT(*) FROM pacientes "
-        params = []
-        where_clause = ""
-
+        sb = get_supabase()
+        q = sb.table('pacientes').select('*').order('nome', ascending=True)
         if busca:
-            where_clause = "WHERE nome LIKE %s "
-            params.append('%' + busca + '%')
-
-        # Contagem total para paginação futura
-        # cur.execute(count_query_base + where_clause, params)
-        # total_pacientes = cur.fetchone()[0]
-        # total_paginas = (total_pacientes + por_pagina - 1) // por_pagina
-
-        query = query_base + where_clause + "ORDER BY nome ASC LIMIT %s OFFSET %s" # Ordenado por nome
-        params.extend([por_pagina, offset])
-        cur.execute(query, params)
-        pacientes_data = cur.fetchall()
-
-        return render_template('pacientes.html', pacientes=pacientes_data, busca=busca, pagina=pagina) #, total_paginas=total_paginas)
+            q = q.ilike('nome', f'%{busca}%')
+        q = q.range(offset, offset + por_pagina - 1)
+        res = q.execute()
+        rows = getattr(res, 'data', None) or []
+        # Converter para tuplas no formato esperado pelo template
+        pacientes_data = []
+        for r in rows:
+            dn = r.get('data_nascimento')
+            if isinstance(dn, str) and dn:
+                try:
+                    dn_obj = datetime.datetime.strptime(dn, '%Y-%m-%d').date()
+                except Exception:
+                    dn_obj = None
+            else:
+                dn_obj = dn
+            pacientes_data.append((r.get('id'), r.get('nome'), r.get('cpf'), r.get('telefone'), r.get('email'), dn_obj))
+        return render_template('pacientes.html', pacientes=pacientes_data, busca=busca, pagina=pagina)
     except Exception as e:
         flash(f"Erro ao buscar pacientes: {e}", "danger")
         return render_template('pacientes.html', pacientes=[], busca=busca, pagina=pagina)
-    finally:
-        if cur:
-            cur.close()
 
 # CORRIGIDO: Removido &lt; e &gt;
 @app.route('/editar_paciente/<int:id>', methods=['GET', 'POST'])
 def editar_paciente(id):
     if not session.get('logado'):
         return redirect(url_for('login'))
-    cur = None
+    sb = get_supabase()
     try:
-        cur = mysql.connection.cursor()
         if request.method == 'POST':
             nome = request.form['nome']
             cpf = request.form['cpf']
@@ -497,52 +595,44 @@ def editar_paciente(id):
             email = request.form['email']
             data_nascimento = request.form['data_nascimento'] or None
 
-            cur.execute("""
-                UPDATE pacientes
-                SET nome = %s, cpf = %s, telefone = %s, email = %s, data_nascimento = %s
-                WHERE id = %s
-            """, (nome, cpf, telefone, email, data_nascimento, id))
-            mysql.connection.commit()
+            sb.table('pacientes').update({
+                'nome': nome,
+                'cpf': cpf,
+                'telefone': telefone,
+                'email': email,
+                'data_nascimento': data_nascimento
+            }).eq('id', id).execute()
             flash('Paciente atualizado com sucesso!', 'success')
             return redirect(url_for('pacientes'))
         else: # Método GET
-            cur.execute("SELECT * FROM pacientes WHERE id = %s", (id,))
-            paciente = cur.fetchone()
-            if not paciente:
+            res = sb.table('pacientes').select('*').eq('id', id).limit(1).execute()
+            rows = getattr(res, 'data', None) or []
+            if not rows:
                 flash('Paciente não encontrado.', 'danger')
                 return redirect(url_for('pacientes'))
-            # Formata a data para YYYY-MM-DD para o input type="date"
-            paciente_dict = list(paciente)
-            if paciente_dict[5]: # Se data_nascimento não for None
-                paciente_dict[5] = paciente_dict[5].strftime('%Y-%m-%d')
-
+            r = rows[0]
+            dn = r.get('data_nascimento')
+            if isinstance(dn, str) and dn:
+                dn_fmt = dn
+            else:
+                dn_fmt = dn.strftime('%Y-%m-%d') if dn else None
+            paciente_dict = [r.get('id'), r.get('nome'), r.get('cpf'), r.get('telefone'), r.get('email'), dn_fmt]
             return render_template('editar_paciente.html', paciente=paciente_dict)
     except Exception as e:
-        mysql.connection.rollback()
         flash(f"Erro ao editar paciente: {e}", "danger")
         return redirect(url_for('pacientes'))
-    finally:
-        if cur:
-            cur.close()
 
 # CORRIGIDO: Removido &lt; e &gt;
 @app.route('/excluir_paciente/<int:id>')
 def excluir_paciente(id):
     if not session.get('logado'):
         return redirect(url_for('login'))
-    cur = None
     try:
-        # Adicionar verificação se existem dependências (agendamentos, financeiro, odontograma) antes de excluir?
-        cur = mysql.connection.cursor()
-        cur.execute("DELETE FROM pacientes WHERE id = %s", (id,))
-        mysql.connection.commit()
+        sb = get_supabase()
+        sb.table('pacientes').delete().eq('id', id).execute()
         flash('Paciente excluído com sucesso!', 'success')
     except Exception as e:
-        mysql.connection.rollback()
         flash(f'Erro ao excluir paciente: {str(e)}', 'danger')
-    finally:
-        if cur:
-            cur.close()
     return redirect(url_for('pacientes'))
 
 # --- Rotas de Agendamento e Financeiro (Simplificado) ---
@@ -553,54 +643,48 @@ def cadastrar_agendamento():
     if not session.get('logado'):
         return redirect(url_for('login'))
 
-    cur = None
+    sb = get_supabase()
     try:
-        cur = mysql.connection.cursor()
-
         if request.method == 'POST':
             paciente_id = request.form.get('paciente_id')
             servico = request.form.get('servico')
             data = request.form.get('data')
             hora = request.form.get('hora')
-            observacoes = request.form.get('observacoes', '') # Pega observações, default vazio
+            observacoes = request.form.get('observacoes', '')
 
-            # Validação básica (pode ser mais robusta)
             if not all([paciente_id, servico, data, hora]):
                 flash('Preencha todos os campos obrigatórios (Paciente, Serviço, Data, Hora).', 'warning')
             else:
-                cur.execute("""
-                    INSERT INTO agendamentos (paciente_id, servico, data, hora, observacoes, status)
-                    VALUES (%s, %s, %s, %s, %s, %s)
-                """, (paciente_id, servico, data, hora, observacoes, 'Agendado')) # Adiciona um status padrão
-                mysql.connection.commit()
+                hora_val = hora if len(hora) == 8 else (hora + ':00' if len(hora) == 5 else hora)
+                sb.table('agendamentos').insert({
+                    'paciente_id': int(paciente_id),
+                    'servico': servico,
+                    'data': data,
+                    'hora': hora_val,
+                    'observacoes': observacoes,
+                    'status': 'Agendado'
+                }).execute()
                 flash('Agendamento cadastrado com sucesso!', 'success')
-                # Limpa o formulário redirecionando para a mesma página (GET)
                 return redirect(url_for('cadastrar_agendamento'))
 
-        # Lógica para GET (executa sempre, e após POST se não redirecionar antes)
-        cur.execute("SELECT id, nome FROM pacientes ORDER BY nome ASC") # Ordena pacientes por nome
-        pacientes_lista = cur.fetchall()
+        # GET: carregar pacientes
+        res_p = sb.table('pacientes').select('id, nome').order('nome', ascending=True).execute()
+        rows_p = getattr(res_p, 'data', None) or []
+        pacientes_lista = [(r.get('id'), r.get('nome')) for r in rows_p]
         return render_template('cadastrar_agendamento.html', pacientes=pacientes_lista)
 
     except Exception as e:
-        if mysql.connection: mysql.connection.rollback() # Rollback em caso de erro no POST
-        print(f"Erro em /cadastrar_agendamento: {e}")
-        traceback.print_exc()
+        print(f"Erro em /cadastrar_agendamento: {e}"); traceback.print_exc()
         flash(f'Erro ao processar agendamento: {str(e)}', 'danger')
-        # Tenta recarregar a página mesmo com erro, buscando pacientes novamente se possível
         pacientes_lista = []
-        if cur: # Tenta buscar pacientes se o cursor ainda for válido (pode falhar)
-             try:
-                 cur.execute("SELECT id, nome FROM pacientes ORDER BY nome ASC")
-                 pacientes_lista = cur.fetchall()
-             except Exception as fetch_err:
-                 print(f"Erro ao buscar pacientes após erro inicial: {fetch_err}")
-        # Passa os dados do formulário de volta em caso de erro no POST
+        try:
+            res_p = sb.table('pacientes').select('id, nome').order('nome', ascending=True).execute()
+            rows_p = getattr(res_p, 'data', None) or []
+            pacientes_lista = [(r.get('id'), r.get('nome')) for r in rows_p]
+        except Exception as fetch_err:
+            print(f"Erro ao buscar pacientes após erro inicial: {fetch_err}")
         form_data = request.form if request.method == 'POST' else {}
         return render_template('cadastrar_agendamento.html', pacientes=pacientes_lista, form_data=form_data)
-    finally:
-        if cur:
-            cur.close()
 
 
 # Remova 'POST' dos métodos, pois o form será enviado via JS para a API
@@ -621,49 +705,30 @@ def api_get_lancamentos():
     if not session.get('logado'):
         return jsonify({"erro": "Não autorizado"}), 401
 
-    cur = None
+    sb = get_supabase()
     try:
-        cur = mysql.connection.cursor()
-        cur.execute("""
-            SELECT f.*, p.nome as paciente_nome
-            FROM financeiro f
-            LEFT JOIN pacientes p ON f.paciente_id = p.id
-            ORDER BY f.data_vencimento DESC
-        """)
+        res = sb.table('financeiro').select('*').order('data_vencimento', desc=True).execute()
+        lancamentos = getattr(res, 'data', None) or []
 
-        lancamentos = [] # Inicializa como lista vazia
-        if cur.rowcount > 0:
-             columns = [col[0] for col in cur.description]
-             # Fetchall e processa linha por linha para melhor depuração se necessário
-             rows = cur.fetchall()
-             for row in rows:
-                 lancamento_dict = dict(zip(columns, row))
-                 # --- Processamento de Tipos ---
-                 for key, value in lancamento_dict.items():
-                     if isinstance(value, decimal.Decimal):
-                         # Converte Decimal para float (ou string: str(value))
-                         lancamento_dict[key] = float(value)
-                     elif isinstance(value, (datetime.date, datetime.datetime)):
-                         # Converte Date/Datetime para string ISO, SE NÃO FOR NONE
-                         lancamento_dict[key] = value.isoformat() if value else None
-                     # Adicione outras conversões se necessário (ex: booleanos)
-                 lancamentos.append(lancamento_dict)
-             # --- Fim do Processamento ---
+        # Enriquecer com nome do paciente sem join direto
+        ids = {item.get('paciente_id') for item in lancamentos if item.get('paciente_id') is not None}
+        nomes_por_id = {}
+        if ids:
+            pres = sb.table('pacientes').select('id, nome').in_('id', list(ids)).execute()
+            prows = getattr(pres, 'data', None) or []
+            nomes_por_id = {p.get('id'): p.get('nome') for p in prows}
+        for item in lancamentos:
+            pid = item.get('paciente_id')
+            item['paciente_nome'] = nomes_por_id.get(pid)
 
-        # Retorna a lista (pode estar vazia) como JSON
-        return jsonify(lancamentos)
+        return jsonify(format_for_json(lancamentos))
 
     except Exception as e:
-        # Log detalhado do erro no console do servidor
         print("="*30)
-        print(f"ERRO em GET /api/financeiro/lancamentos:")
-        traceback.print_exc() # Imprime o traceback completo
+        print("ERRO em GET /api/financeiro/lancamentos:")
+        traceback.print_exc()
         print("="*30)
-        # Retorna uma mensagem de erro genérica para o cliente
-        return jsonify({"erro": f"Erro interno ao buscar lançamentos. Verifique os logs do servidor."}), 500
-    finally:
-        if cur:
-            cur.close()
+        return jsonify({"erro": "Erro interno ao buscar lançamentos. Verifique os logs do servidor."}), 500
 
 # Não se esqueça dos imports no topo do arquivo!
 # import traceback
@@ -679,21 +744,15 @@ def api_get_lancamentos():
 def api_get_pacientes():
     if not session.get('logado'):
         return jsonify({"erro": "Não autorizado"}), 401
-    # ... (lógica para buscar id e nome dos pacientes) ...
-    cur = None
+    sb = get_supabase()
     try:
-        cur = mysql.connection.cursor()
-        cur.execute("SELECT id, nome FROM pacientes ORDER BY nome ASC")
-        pacientes_lista = []
-        if cur.rowcount > 0:
-            columns = [col[0] for col in cur.description]
-            pacientes_lista = [dict(zip(columns, row)) for row in cur.fetchall()]
-        return jsonify(pacientes_lista)
+        res = sb.table('pacientes').select('id, nome').order('nome', ascending=True).execute()
+        pacientes_lista = getattr(res, 'data', None) or []
+        return jsonify(format_for_json(pacientes_lista))
     except Exception as e:
         print(f"Erro em /api/pacientes/listar: {e}")
+        traceback.print_exc()
         return jsonify({"erro": f"Erro ao buscar pacientes: {str(e)}"}), 500
-    finally:
-        if cur: cur.close()
 
 
 # Exemplo para criar lançamento (POST) - Adaptado do seu código original
@@ -702,14 +761,14 @@ def api_create_lancamento():
     if not session.get('logado'):
         return jsonify({"erro": "Não autorizado"}), 401
 
-    data = request.get_json() # Recebe dados JSON do JavaScript
+    data = request.get_json()  # Recebe dados JSON do JavaScript
     if not data:
         return jsonify({"erro": "Requisição sem dados JSON"}), 400
 
     paciente_id = data.get('paciente_id')
     agendamento_id = data.get('agendamento_id') or None
     descricao = data.get('descricao')
-    valor_str = data.get('valor') # Valor virá como número ou string do JS
+    valor_str = data.get('valor')  # Valor virá como número ou string do JS
     status = data.get('status')
     data_vencimento = data.get('data_vencimento')
     data_pagamento = data.get('data_pagamento') or None
@@ -719,41 +778,42 @@ def api_create_lancamento():
          return jsonify({"erro": "Campos obrigatórios faltando"}), 400
 
     try:
-        valor_float = float(valor_str) # JS deve enviar número
+        valor_float = float(valor_str)  # JS deve enviar número
     except (ValueError, TypeError):
         return jsonify({"erro": "Valor financeiro inválido"}), 400
 
-    # Lógica de banco de dados (similar ao seu POST original)
-    cur = None
+    sb = get_supabase()
     try:
-        cur = mysql.connection.cursor()
-        cur.execute("""
-            INSERT INTO financeiro (paciente_id, agendamento_id, descricao, valor, status, data_vencimento, data_pagamento)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-        """, (paciente_id, agendamento_id, descricao, valor_float, status, data_vencimento, data_pagamento))
-        mysql.connection.commit()
-        novo_id = cur.lastrowid # Pega o ID do registro inserido
-
-        # Retorna o objeto criado (ou apenas sucesso)
-        # É bom buscar o registro recém-criado para retornar completo
-        cur.execute("SELECT f.*, p.nome as paciente_nome FROM financeiro f LEFT JOIN pacientes p ON f.paciente_id = p.id WHERE f.id = %s", (novo_id,))
-        if cur.rowcount > 0:
-            columns = [col[0] for col in cur.description]
-            novo_lancamento = dict(zip(columns, cur.fetchone()))
-            # Formatar Decimal/Date antes de retornar
-            for key, value in novo_lancamento.items():
-                 if isinstance(value, decimal.Decimal): novo_lancamento[key] = float(value)
-                 elif isinstance(value, (datetime.date, datetime.datetime)): novo_lancamento[key] = value.isoformat()
-            return jsonify(novo_lancamento), 201 # 201 Created
+        payload = {
+            'paciente_id': int(paciente_id),
+            'agendamento_id': agendamento_id,
+            'descricao': descricao,
+            'valor': valor_float,
+            'status': status,
+            'data_vencimento': data_vencimento,
+            'data_pagamento': data_pagamento
+        }
+        ins = sb.table('financeiro').insert(payload).select('*').execute()
+        rows = getattr(ins, 'data', None) or []
+        if rows:
+            novo_lancamento = rows[0]
+            # Adicionar paciente_nome
+            pid = novo_lancamento.get('paciente_id')
+            nome = None
+            if pid is not None:
+                pres = sb.table('pacientes').select('id, nome').eq('id', pid).limit(1).execute()
+                prows = getattr(pres, 'data', None) or []
+                if prows:
+                    nome = prows[0].get('nome')
+            novo_lancamento['paciente_nome'] = nome
+            return jsonify(format_for_json(novo_lancamento)), 201  # 201 Created
         else:
-            return jsonify({"sucesso": True, "id": novo_id}), 201
+            return jsonify({"sucesso": True}), 201
 
     except Exception as e:
-        if mysql.connection: mysql.connection.rollback()
         print(f"Erro em POST /api/financeiro/lancamentos: {e}")
+        traceback.print_exc()
         return jsonify({"erro": f"Erro ao salvar lançamento: {str(e)}"}), 500
-    finally:
-        if cur: cur.close()
 
 
 # --- CRIE AS ROTAS PARA PUT, DELETE e PUT /status de forma similar ---
@@ -766,21 +826,18 @@ def api_create_lancamento():
 def api_delete_lancamento(id):
     if not session.get('logado'):
         return jsonify({"erro": "Não autorizado"}), 401
-    cur = None
+    sb = get_supabase()
     try:
-        cur = mysql.connection.cursor()
-        cur.execute("DELETE FROM financeiro WHERE id = %s", (id,))
-        mysql.connection.commit()
-        if cur.rowcount > 0:
-            return jsonify({"sucesso": True}), 200 # Ou 204 No Content sem corpo
-        else:
+        ex = sb.table('financeiro').select('id').eq('id', id).limit(1).execute()
+        exists = getattr(ex, 'data', None) or []
+        if not exists:
             return jsonify({"erro": "Lançamento não encontrado"}), 404
+        sb.table('financeiro').delete().eq('id', id).execute()
+        return jsonify({"sucesso": True}), 200  # Ou 204 No Content sem corpo
     except Exception as e:
-        if mysql.connection: mysql.connection.rollback()
         print(f"Erro em DELETE /api/financeiro/lancamentos/{id}: {e}")
+        traceback.print_exc()
         return jsonify({"erro": f"Erro ao excluir lançamento: {str(e)}"}), 500
-    finally:
-        if cur: cur.close()
 
 # Exemplo rápido para PUT /status
 @app.route('/api/financeiro/lancamentos/<int:id>/status', methods=['PUT'])
@@ -793,33 +850,30 @@ def api_update_lancamento_status(id):
         return jsonify({"erro": "Dados inválidos (status obrigatório)"}), 400
 
     novo_status = data.get('status')
-    data_pagamento = data.get('data_pagamento') # Pode ser null
+    data_pagamento = data.get('data_pagamento')  # Pode ser null
 
     if novo_status not in ['pago', 'pendente']:
         return jsonify({"erro": "Status inválido"}), 400
 
-    cur = None
+    sb = get_supabase()
     try:
-        cur = mysql.connection.cursor()
-        cur.execute("""
-            UPDATE financeiro
-            SET status = %s, data_pagamento = %s
-            WHERE id = %s
-        """, (novo_status, data_pagamento, id))
-        mysql.connection.commit()
+        sb.table('financeiro').update({
+            'status': novo_status,
+            'data_pagamento': data_pagamento
+        }).eq('id', id).execute()
 
-        if cur.rowcount > 0:
-             # Opcional: buscar e retornar o registro atualizado
-             return jsonify({"sucesso": True}), 200
+        # Opcional: buscar e confirmar o registro atualizado
+        chk = sb.table('financeiro').select('id').eq('id', id).limit(1).execute()
+        ok = getattr(chk, 'data', None) or []
+        if ok:
+            return jsonify({"sucesso": True}), 200
         else:
-             return jsonify({"erro": "Lançamento não encontrado"}), 404
+            return jsonify({"erro": "Lançamento não encontrado"}), 404
 
     except Exception as e:
-        if mysql.connection: mysql.connection.rollback()
         print(f"Erro em PUT /api/financeiro/lancamentos/{id}/status: {e}")
+        traceback.print_exc()
         return jsonify({"erro": f"Erro ao atualizar status: {str(e)}"}), 500
-    finally:
-        if cur: cur.close()
 
 # --- Fim das Rotas de Agendamento e Financeiro ---
 
@@ -851,35 +905,24 @@ def odontograma_paciente(paciente_id):
 # GET: Buscar tratamentos de um paciente (ADICIONADO 'concluido')
 @app.route('/api/odontograma/<int:paciente_id>/tratamentos', methods=['GET'])
 def get_tratamentos_paciente(paciente_id):
-    # ... (verificação de login) ...
-    cur = None
+    if not session.get('logado'):
+        return jsonify({"erro": "Não autorizado"}), 401
+    sb = get_supabase()
     try:
-        cur = mysql.connection.cursor()
-        cur.execute("""
-            SELECT id, dente_numero, tipo_tratamento, data_tratamento, observacoes, proxima_sessao, concluido
-            FROM odontograma_tratamentos
-            WHERE paciente_id = %s
-            ORDER BY data_criacao ASC
-        """, (paciente_id,))
-        columns = [col[0] for col in cur.description]
-        tratamentos = [dict(zip(columns, row)) for row in cur.fetchall()]
-
-        # Formatar datas e converter booleano (MySQL pode retornar 0/1)
+        res = sb.table('odontograma_tratamentos').select('id, dente_numero, tipo_tratamento, data_tratamento, observacoes, proxima_sessao, concluido').eq('paciente_id', paciente_id).order('data_criacao', ascending=True).execute()
+        tratamentos = getattr(res, 'data', None) or []
+        # Formatar datas para YYYY-MM-DD e garantir booleano
         for t in tratamentos:
             if t.get('data_tratamento'):
-                t['data_tratamento'] = t['data_tratamento'].strftime('%Y-%m-%d')
+                t['data_tratamento'] = str(t['data_tratamento'])[:10]
             if t.get('proxima_sessao'):
-                t['proxima_sessao'] = t['proxima_sessao'].strftime('%Y-%m-%d')
-            # Garante que 'concluido' seja um booleano no JSON
+                t['proxima_sessao'] = str(t['proxima_sessao'])[:10]
             t['concluido'] = bool(t.get('concluido', False))
-        return jsonify(tratamentos)
+        return jsonify(format_for_json(tratamentos))
     except Exception as e:
         print(f"Erro API GET /tratamentos (paciente {paciente_id}): {e}")
         traceback.print_exc()
         return jsonify({"erro": "Erro interno ao buscar tratamentos"}), 500
-    finally:
-        if cur:
-            cur.close()
 
 # POST: Adicionar um novo tratamento (ADICIONADO 'concluido')
 # POST: Adicionar um novo tratamento E criar lançamento financeiro se houver valor
@@ -1111,50 +1154,82 @@ def update_tratamento_status(tratamento_id):
 @app.route('/agendamentos', methods=['GET'])
 def agendamentos():
     if not session.get('logado'): return redirect(url_for('login'))
-    filtro_paciente = request.args.get('paciente', ''); filtro_data = request.args.get('data', '')
+    filtro_paciente = request.args.get('paciente', '')
+    filtro_data = request.args.get('data', '')
     filtro_status = request.args.get('status', '')
-    cur = None; agendamentos_data = []
+
+    agendamentos_data = []
     try:
-        cur = mysql.connection.cursor()
-        # Query base - ADICIONADO p.id AS paciente_id
-        query = """
-            SELECT a.id, p.nome, a.servico, a.data,
-                   TIME_FORMAT(a.hora, '%%H:%%i') AS hora_formatada,
-                   a.status, a.observacoes,
-                   p.id AS paciente_id  -- <<< ADICIONADO ESTA LINHA
-            FROM agendamentos a
-            JOIN pacientes p ON a.paciente_id = p.id
-        """
-        valores = []; where_clauses = []
-        if filtro_paciente: where_clauses.append("p.nome LIKE %s"); valores.append('%' + filtro_paciente + '%')
-        if filtro_data: where_clauses.append("a.data = %s"); valores.append(filtro_data)
-        if filtro_status: where_clauses.append("a.status = %s"); valores.append(filtro_status)
-        if where_clauses: query += " WHERE " + " AND ".join(where_clauses)
-        query += " ORDER BY a.data DESC, a.hora ASC"
+        sb = get_supabase()
+        q = sb.table('agendamentos').select('id, servico, data, hora, status, observacoes, paciente_id')
+        if filtro_data:
+            q = q.eq('data', filtro_data)
+        if filtro_status:
+            q = q.eq('status', filtro_status)
+        # Filtro por nome do paciente: buscar IDs e aplicar filtro IN
+        paciente_ids = None
+        if filtro_paciente:
+            res_p = sb.table('pacientes').select('id').ilike('nome', f'%{filtro_paciente}%').execute()
+            ids = [r.get('id') for r in (getattr(res_p, 'data', None) or [])]
+            if ids:
+                paciente_ids = ids
+                q = q.in_('paciente_id', ids)
+            else:
+                # Nenhum paciente corresponde; retorna lista vazia
+                return render_template('agendamentos.html', agendamentos_lista=[], filtros=request.args)
+        # Ordenação
+        q = q.order('data', descending=True).order('hora', ascending=True)
+        res = q.execute()
+        rows = getattr(res, 'data', None) or []
 
-        # print("Query Agendamentos:", query) # Para debug
-        # print("Valores:", valores)          # Para debug
+        # Montar mapa de nomes de pacientes
+        if paciente_ids is None:
+            paciente_ids = list({r.get('paciente_id') for r in rows if r.get('paciente_id') is not None})
+        pacientes_map = {}
+        if paciente_ids:
+            res_map = sb.table('pacientes').select('id, nome').in_('id', paciente_ids).execute()
+            for pr in (getattr(res_map, 'data', None) or []):
+                pacientes_map[pr.get('id')] = pr.get('nome')
 
-        cur.execute(query, valores)
-        columns = [col[0] for col in cur.description]
-        agendamentos_data = [dict(zip(columns, row)) for row in cur.fetchall()]
-        for ag in agendamentos_data:
-            if ag.get('data'): ag['data_formatada'] = ag['data'].strftime('%d/%m/%Y')
-            else: ag['data_formatada'] = 'N/A'
-            # Verifica se hora_formatada é None (caso a hora no DB seja NULL)
-            if ag.get('hora_formatada') is None:
-                ag['hora_formatada'] = 'N/A' # Ou outra string padrão
+        # Formatar saída compatível com template
+        for r in rows:
+            data_val = r.get('data')
+            hora_val = r.get('hora')
+            # data_formatada
+            data_fmt = 'N/A'
+            try:
+                if isinstance(data_val, str) and len(data_val) >= 10:
+                    dt = datetime.datetime.strptime(data_val[:10], '%Y-%m-%d')
+                    data_fmt = dt.strftime('%d/%m/%Y')
+                elif hasattr(data_val, 'strftime'):
+                    data_fmt = data_val.strftime('%d/%m/%Y')
+            except Exception:
+                pass
+            # hora_formatada
+            hora_fmt = 'N/A'
+            if isinstance(hora_val, str) and len(hora_val) >= 5:
+                hora_fmt = hora_val[:5]
+            elif hasattr(hora_val, 'strftime'):
+                hora_fmt = hora_val.strftime('%H:%M')
+
+            agendamentos_data.append({
+                'id': r.get('id'),
+                'nome': pacientes_map.get(r.get('paciente_id'), 'N/A'),
+                'servico': r.get('servico'),
+                'data': data_val,
+                'data_formatada': data_fmt,
+                'hora_formatada': hora_fmt,
+                'status': r.get('status'),
+                'observacoes': r.get('observacoes'),
+                'paciente_id': r.get('paciente_id'),
+            })
 
     except Exception as e:
-        print(f"Erro ao buscar agendamentos: {e}"); traceback.print_exc()
+        print(f"Erro ao buscar agendamentos (Supabase): {e}")
+        traceback.print_exc()
         flash("Erro ao carregar lista de agendamentos.", "danger")
-    finally:
-        if cur: cur.close()
 
-    # print("Dados enviados para agendamentos.html:", agendamentos_data) # Debug
-    return render_template('agendamentos.html',
-                           agendamentos_lista=agendamentos_data,
-                           filtros=request.args)
+    return render_template('agendamentos.html', agendamentos_lista=agendamentos_data, filtros=request.args)
 
 
 @app.route('/exportar_excel')
@@ -1394,78 +1469,72 @@ def editar_agendamento(id):
     if not session.get('logado'):
         return redirect(url_for('login'))
 
-    cur = None
+    sb = get_supabase()
     try:
-        cur = mysql.connection.cursor()
-
         if request.method == 'POST':
             # Pega dados do formulário
             paciente_id = request.form.get('paciente_id')
             servico = request.form.get('servico')
             data = request.form.get('data')
             hora = request.form.get('hora')
-            status = request.form.get('status') # Pega o novo status
+            status = request.form.get('status')  # Pega o novo status
             observacoes = request.form.get('observacoes', '')
 
             # Validação básica
             if not all([paciente_id, servico, data, hora, status]):
                 flash('Preencha todos os campos obrigatórios.', 'warning')
-                # Recarrega a página com os dados atuais (precisa buscar novamente)
-                # Para simplificar, vamos apenas redirecionar de volta para a lista em caso de erro aqui
-                # Uma solução melhor seria passar os dados do form de volta
                 return redirect(url_for('editar_agendamento', id=id))
             else:
-                # Atualiza o agendamento no banco
-                cur.execute("""
-                    UPDATE agendamentos
-                    SET paciente_id = %s, servico = %s, data = %s, hora = %s, status = %s, observacoes = %s
-                    WHERE id = %s
-                """, (paciente_id, servico, data, hora, status, observacoes, id))
-                mysql.connection.commit()
+                # Normaliza hora para HH:MM:SS
+                hora_db = (hora or '').strip()
+                if hora_db and len(hora_db) == 5:
+                    hora_db = f"{hora_db}:00"
+
+                update_payload = {
+                    'paciente_id': int(paciente_id),
+                    'servico': servico,
+                    'data': data,
+                    'hora': hora_db,
+                    'status': status,
+                    'observacoes': observacoes
+                }
+                sb.table('agendamentos').update(update_payload).eq('id', id).execute()
                 flash('Agendamento atualizado com sucesso!', 'success')
-                return redirect(url_for('agendamentos')) # Volta para a lista
+                return redirect(url_for('agendamentos'))  # Volta para a lista
 
         # --- Lógica para GET ---
-        # Busca o agendamento específico
-        cur.execute("""
-            SELECT a.id, a.paciente_id, a.servico, a.data, a.hora, a.status, a.observacoes, p.nome as nome_paciente
-            FROM agendamentos a
-            JOIN pacientes p ON a.paciente_id = p.id
-            WHERE a.id = %s
-        """, (id,))
-        agendamento_tuple = cur.fetchone()
-
-        if not agendamento_tuple:
+        res = sb.table('agendamentos').select('id, paciente_id, servico, data, hora, status, observacoes').eq('id', id).limit(1).execute()
+        rows = getattr(res, 'data', None) or []
+        if not rows:
             flash('Agendamento não encontrado.', 'danger')
             return redirect(url_for('agendamentos'))
+        agendamento = rows[0]
 
-        # Converte para dicionário
-        agendamento_cols = [col[0] for col in cur.description]
-        agendamento = dict(zip(agendamento_cols, agendamento_tuple))
+        # Busca nome do paciente
+        nome_paciente = None
+        pid_val = agendamento.get('paciente_id')
+        if pid_val is not None:
+            pres = sb.table('pacientes').select('id, nome').eq('id', pid_val).limit(1).execute()
+            prows = getattr(pres, 'data', None) or []
+            if prows:
+                nome_paciente = prows[0].get('nome')
+        agendamento['nome_paciente'] = nome_paciente
 
         # Formata data e hora para os inputs do formulário
         if agendamento.get('data'):
-            agendamento['data_form'] = agendamento['data'].strftime('%Y-%m-%d')
+            agendamento['data_form'] = str(agendamento['data'])[:10]
         if agendamento.get('hora'):
-             # Verifica se hora é timedelta ou time e formata
-             if isinstance(agendamento['hora'], timedelta):
-                 # Converte timedelta para string HH:MM
-                 total_seconds = int(agendamento['hora'].total_seconds())
-                 hours, remainder = divmod(total_seconds, 3600)
-                 minutes, seconds = divmod(remainder, 60)
-                 agendamento['hora_form'] = f"{hours:02}:{minutes:02}"
-             elif isinstance(agendamento['hora'], datetime.time): # Se for objeto time
-                 agendamento['hora_form'] = agendamento['hora'].strftime('%H:%M')
-             else: # Fallback se for string ou outro tipo
-                 agendamento['hora_form'] = str(agendamento['hora'])
+            agendamento['hora_form'] = str(agendamento['hora'])[:5]
+        else:
+            agendamento['hora_form'] = ''
 
-
-        # Busca todos os pacientes para o dropdown
-        cur.execute("SELECT id, nome FROM pacientes ORDER BY nome ASC")
-        pacientes_lista = cur.fetchall()
+        # Busca todos os pacientes para o dropdown (como tuplas id, nome)
+        plist_res = sb.table('pacientes').select('id, nome').order('nome', ascending=True).execute()
+        prows = getattr(plist_res, 'data', None) or []
+        pacientes_lista = [(p.get('id'), p.get('nome')) for p in prows]
 
         # Lista de status possíveis
-        status_possiveis = ['Agendado', 'Confirmado', 'Realizado', 'Cancelado', 'Não Compareceu'] # Adicione outros se usar
+        status_possiveis = ['Agendado', 'Confirmado', 'Realizado', 'Cancelado', 'Não Compareceu']
 
         return render_template('editar_agendamento.html',
                                agendamento=agendamento,
@@ -1473,15 +1542,10 @@ def editar_agendamento(id):
                                status_lista=status_possiveis)
 
     except Exception as e:
-        if request.method == 'POST' and mysql.connection:
-            mysql.connection.rollback()
         print(f"Erro em /editar_agendamento/{id}: {e}")
         traceback.print_exc()
         flash(f'Erro ao processar edição do agendamento: {str(e)}', 'danger')
         return redirect(url_for('agendamentos'))
-    finally:
-        if cur:
-            cur.close()
 
 # --- Fim da rota editar_agendamento ---
 
@@ -1634,66 +1698,64 @@ def portal_home():
     tratamentos = []
     financeiro_lista = []
     agendamentos_futuros = []
+    documentos_lista = []
 
     try:
         print(f"--- [Portal Home] Buscando dados para paciente ID: {paciente_id} ---")
-        cur = mysql.connection.cursor() # Assume DictCursor ou faremos conversão
+        sb = get_supabase()
 
         # 1. Buscar tratamentos (odontograma_tratamentos)
         print("--- [Portal Home] Buscando tratamentos... ---")
-        sql_tratamentos = """
-            SELECT id, dente_numero, tipo_tratamento, data_tratamento, observacoes, valor, concluido
-            FROM odontograma_tratamentos WHERE paciente_id = %s
-            ORDER BY data_tratamento DESC, data_criacao DESC
-        """
-        cur.execute(sql_tratamentos, (paciente_id,))
-        tratamentos_cols = [col[0] for col in cur.description]
-        tratamentos_tuples = cur.fetchall()
-        tratamentos_raw_dicts = [dict(zip(tratamentos_cols, row)) for row in tratamentos_tuples]
-        tratamentos = format_for_json(tratamentos_raw_dicts)
+        t_res = sb.table('odontograma_tratamentos') \
+            .select('id, dente_numero, tipo_tratamento, data_tratamento, observacoes, valor, concluido, data_criacao') \
+            .eq('paciente_id', paciente_id) \
+            .order('data_tratamento', desc=True) \
+            .order('data_criacao', desc=True) \
+            .execute()
+        t_rows = getattr(t_res, 'data', None) or []
+        tratamentos = format_for_json(t_rows)
         print(f"--- [Portal Home] {len(tratamentos)} tratamentos encontrados. ---")
 
         # 2. Buscar financeiro
         print("--- [Portal Home] Buscando financeiro... ---")
-        sql_financeiro = """
-            SELECT id, descricao, valor, status, data_vencimento, data_pagamento, tratamento_id
-            FROM financeiro WHERE paciente_id = %s ORDER BY data_vencimento DESC
-        """
-        cur.execute(sql_financeiro, (paciente_id,))
-        financeiro_cols = [col[0] for col in cur.description]
-        financeiro_tuples = cur.fetchall()
-        financeiro_raw_dicts = [dict(zip(financeiro_cols, row)) for row in financeiro_tuples]
-        financeiro_lista = format_for_json(financeiro_raw_dicts)
+        f_res = sb.table('financeiro') \
+            .select('id, descricao, valor, status, data_vencimento, data_pagamento, tratamento_id') \
+            .eq('paciente_id', paciente_id) \
+            .order('data_vencimento', desc=True) \
+            .execute()
+        f_rows = getattr(f_res, 'data', None) or []
+        financeiro_lista = format_for_json(f_rows)
         print(f"--- [Portal Home] {len(financeiro_lista)} lançamentos financeiros encontrados. ---")
 
         # 3. Buscar agendamentos futuros
         print("--- [Portal Home] Buscando agendamentos futuros... ---")
-        sql_agendamentos = """
-            SELECT id, servico, data, TIME_FORMAT(hora, '%%H:%%i') as hora_f, status
-            FROM agendamentos WHERE paciente_id = %s AND data >= CURDATE()
-            ORDER BY data ASC, hora ASC
-        """
-        cur.execute(sql_agendamentos, (paciente_id,))
-        agendamentos_cols = [col[0] for col in cur.description]
-        agendamentos_tuples = cur.fetchall()
-        agendamentos_raw_dicts = [dict(zip(agendamentos_cols, row)) for row in agendamentos_tuples]
-        agendamentos_futuros = format_for_json(agendamentos_raw_dicts)
+        today_iso = date.today().isoformat()
+        a_res = sb.table('agendamentos') \
+            .select('id, servico, data, hora, status') \
+            .eq('paciente_id', paciente_id) \
+            .gte('data', today_iso) \
+            .order('data', ascending=True) \
+            .order('hora', ascending=True) \
+            .execute()
+        a_rows = getattr(a_res, 'data', None) or []
+        agendamentos_futuros = []
+        for a in a_rows:
+            item = dict(a)
+            hora_raw = str(item.get('hora') or '')
+            item['hora_f'] = hora_raw[:5] if hora_raw else None
+            agendamentos_futuros.append(item)
         print(f"--- [Portal Home] {len(agendamentos_futuros)} agendamentos futuros encontrados. ---")
 
 
         # 4. Buscar Documentos <<< NOVA BUSCA
         print("--- [Portal Home] Buscando documentos... ---")
-        sql_documentos = """
-            SELECT id, tipo_documento, data_geracao, nome_arquivo, descricao
-            FROM documentos_paciente
-            WHERE paciente_id = %s
-            ORDER BY data_geracao DESC
-        """
-        cur.execute(sql_documentos, (paciente_id,))
-        documentos_cols = [col[0] for col in cur.description]
-        documentos_tuples = cur.fetchall()
-        documentos_raw_dicts = [dict(zip(documentos_cols, row)) for row in documentos_tuples]
-        documentos_lista = format_for_json(documentos_raw_dicts) # Formata data_geracao
+        d_res = sb.table('documentos_paciente') \
+            .select('id, tipo_documento, data_geracao, nome_arquivo, storage_path, descricao') \
+            .eq('paciente_id', paciente_id) \
+            .order('data_geracao', desc=True) \
+            .execute()
+        d_rows = getattr(d_res, 'data', None) or []
+        documentos_lista = format_for_json(d_rows)
         print(f"--- [Portal Home] {len(documentos_lista)} documentos encontrados. ---")
 
     except Exception as e:
@@ -1728,30 +1790,56 @@ def download_documento(doc_id):
         flash("Sessão inválida.", "warning")
         return redirect(url_for('portal_login'))
 
-    cur = None
     try:
-        cur = mysql.connection.cursor() # Assume DictCursor
-
-        # 2. Busca o documento E VERIFICA SE PERTENCE AO PACIENTE LOGADO
+        sb = get_supabase()
         print(f"--- [Download Doc] Buscando doc ID {doc_id} para paciente ID {paciente_id} ---")
-        cur.execute("""
-            SELECT nome_arquivo, caminho_relativo
-            FROM documentos_paciente
-            WHERE id = %s AND paciente_id = %s
-        """, (doc_id, paciente_id))
-        documento = cur.fetchone()
-
+        res = sb.table('documentos_paciente').select('nome_arquivo, storage_path').eq('id', doc_id).eq('paciente_id', paciente_id).limit(1).execute()
+        docs = getattr(res, 'data', None) or []
+        documento = docs[0] if docs else None
         if not documento:
             print(f"--- [Download Doc] ERRO: Documento {doc_id} não encontrado ou não pertence ao paciente {paciente_id} ---")
             flash("Documento não encontrado ou acesso não permitido.", "danger")
-            return redirect(url_for('portal_home')) # Volta para a home do portal
+            return redirect(url_for('portal_home'))
 
-        # 3. Envia o arquivo usando send_from_directory (mais seguro)
-        nome_arquivo = documento['nome_arquivo']
-        # Usa o caminho base da aplicação + caminho relativo salvo no BD
-        diretorio_base = app.config['UPLOAD_FOLDER']
+        nome_arquivo = documento.get('nome_arquivo')
+        storage_path = documento.get('storage_path')
+        if not storage_path:
+            print(f"--- [Download Doc] ERRO: Documento {doc_id} sem storage_path definido ---")
+            flash("Documento indisponível no armazenamento.", "danger")
+            return redirect(url_for('portal_home'))
 
-        print(f"--- [Download Doc] Enviando arquivo: {nome_arquivo} do diretório: {diretorio_base} ---")
+        # 3. Gerar URL assinada no Storage (5 min) e redirecionar
+        try:
+            signed = sb.storage.from_('documentos').create_signed_url(storage_path, 300)
+            signed_url = None
+            if isinstance(signed, dict):
+                signed_url = signed.get('signed_url') or signed.get('url') or signed.get('signedURL')
+            if signed_url:
+                print(f"--- [Download Doc] URL assinada gerada: {signed_url} ---")
+                return redirect(signed_url)
+        except Exception as e:
+            print(f"--- [Download Doc] Falha ao gerar URL assinada: {e} ---")
+
+        # 4. Fallback: baixar bytes e enviar via Flask
+        try:
+            data = sb.storage.from_('documentos').download(storage_path)
+            if isinstance(data, bytes):
+                return send_file(io.BytesIO(data), as_attachment=True, download_name=nome_arquivo)
+            # Alguns clientes retornam dict com 'data'
+            buf = getattr(data, 'data', None)
+            if buf:
+                return send_file(io.BytesIO(buf), as_attachment=True, download_name=nome_arquivo)
+        except Exception as e:
+            print(f"--- [Download Doc] Falha ao baixar do Storage: {e} ---")
+            traceback.print_exc()
+            flash("Falha ao baixar o documento.", "danger")
+            return redirect(url_for('portal_home'))
+
+    except Exception as e:
+        print(f"--- [Download Doc] ERRO geral: {e} ---")
+        traceback.print_exc()
+        flash("Erro ao processar download.", "danger")
+        return redirect(url_for('portal_home'))
         return send_from_directory(
             directory=diretorio_base,
             path=nome_arquivo, # Nome do arquivo a ser enviado
