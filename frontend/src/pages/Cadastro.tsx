@@ -1,48 +1,107 @@
 import { Link } from 'react-router-dom'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 export default function Cadastro() {
   useEffect(() => {
+    const SITE_URL = 'https://sisdental.com.br';
+    const PAGE_URL = `${SITE_URL}/cadastro`;
+    const TITLE = 'Sisdental | Planos e Assinatura';
+    const DESCRIPTION = 'Simplifique a gestão da sua clínica: agenda, pacientes, financeiro e comunicação no mesmo lugar.';
+
+    const nodes: HTMLElement[] = [];
+    const add = (tag: keyof HTMLElementTagNameMap, attrs: Record<string, string>) => {
+      const el = document.createElement(tag);
+      Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v));
+      document.head.appendChild(el);
+      nodes.push(el);
+      return el;
+    };
+
+    document.title = TITLE;
+    add('meta', { id: 'meta-desc-cadastro', name: 'description', content: DESCRIPTION });
+    add('link', { id: 'link-canonical-cadastro', rel: 'canonical', href: PAGE_URL });
+
+    add('meta', { id: 'og-locale-cadastro', property: 'og:locale', content: 'pt_BR' });
+    add('meta', { id: 'og-type-cadastro', property: 'og:type', content: 'website' });
+    add('meta', { id: 'og-title-cadastro', property: 'og:title', content: TITLE });
+    add('meta', { id: 'og-desc-cadastro', property: 'og:description', content: DESCRIPTION });
+    add('meta', { id: 'og-url-cadastro', property: 'og:url', content: PAGE_URL });
+    add('meta', { id: 'og-site-cadastro', property: 'og:site_name', content: 'Sisdental' });
+    add('meta', { id: 'og-image-cadastro', property: 'og:image', content: 'https://images.unsplash.com/photo-1629904853696-f86d4b6cc8d1?q=80&w=1200&auto=format&fit=crop' });
+
+    add('meta', { id: 'tw-card-cadastro', name: 'twitter:card', content: 'summary_large_image' });
+    add('meta', { id: 'tw-title-cadastro', name: 'twitter:title', content: TITLE });
+    add('meta', { id: 'tw-desc-cadastro', name: 'twitter:description', content: DESCRIPTION });
+    add('meta', { id: 'tw-image-cadastro', name: 'twitter:image', content: 'https://images.unsplash.com/photo-1629904853696-f86d4b6cc8d1?q=80&w=1200&auto=format&fit=crop' });
+
+    const orgJsonLd = {
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      name: 'Sisdental',
+      url: SITE_URL,
+      logo: `${SITE_URL}/favicon.svg`,
+      sameAs: [] as string[],
+    };
+    const org = document.createElement('script');
+    org.type = 'application/ld+json';
+    org.id = 'org-jsonld-cadastro';
+    org.text = JSON.stringify(orgJsonLd);
+    document.head.appendChild(org);
+    nodes.push(org);
+
     const faqJsonLd = {
-      "@context": "https://schema.org",
-      "@type": "FAQPage",
-      "mainEntity": [
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: [
         {
-          "@type": "Question",
-          "name": "Como funciona a cobrança?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "A cobrança é mensal via Mercado Pago. Você pode cancelar quando quiser."
+          '@type': 'Question',
+          name: 'Como funciona a cobrança?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'A cobrança é mensal via Mercado Pago. Você pode cancelar quando quiser.'
           }
         },
         {
-          "@type": "Question",
-          "name": "Existe fidelidade?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Não. Você pode cancelar sem multa a qualquer momento."
+          '@type': 'Question',
+          name: 'Existe fidelidade?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Não. Você pode cancelar sem multa a qualquer momento.'
           }
         },
         {
-          "@type": "Question",
-          "name": "Posso pedir reembolso?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Sim, oferecemos garantia de 7 dias."
+          '@type': 'Question',
+          name: 'Posso pedir reembolso?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Sim, oferecemos garantia de 7 dias.'
           }
         }
       ]
     };
-    const script = document.createElement('script');
-    script.type = 'application/ld+json';
-    script.id = 'faq-jsonld-cadastro';
-    script.text = JSON.stringify(faqJsonLd);
-    document.head.appendChild(script);
+    const faq = document.createElement('script');
+    faq.type = 'application/ld+json';
+    faq.id = 'faq-jsonld-cadastro';
+    faq.text = JSON.stringify(faqJsonLd);
+    document.head.appendChild(faq);
+    nodes.push(faq);
+
     return () => {
-      const el = document.getElementById('faq-jsonld-cadastro');
-      if (el && el.parentNode) el.parentNode.removeChild(el);
+      nodes.forEach((n) => n.parentNode && n.parentNode.removeChild(n));
     };
   }, []);
+  const testimonials = [
+    { quote: 'O Sisdental nos ajudou a organizar a agenda e reduzir faltas.', author: 'Clínica Sorriso — São Paulo' },
+    { quote: 'Facilitou o acompanhamento do histórico do paciente e do financeiro.', author: 'Odonto Vida — Belo Horizonte' },
+    { quote: 'Equipe de suporte atenciosa e plataforma simples de usar.', author: 'Clínica Bem-Estar — Curitiba' },
+  ];
+  const [activeTestimonial, setActiveTestimonial] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => {
+      setActiveTestimonial((i) => (i + 1) % testimonials.length);
+    }, 4000);
+    return () => clearInterval(id);
+  }, [testimonials.length]);
   return (
     <>
       <header className="glass-nav">
@@ -65,7 +124,7 @@ export default function Cadastro() {
       <div className="container py-5 pt-nav">
       <div className="row justify-content-center w-100">
         <div className="col-lg-10">
-          <div className="position-relative hero-gradient text-white rounded-4 p-4 p-md-5 shadow-sm mb-5">
+          <div className="position-relative hero-gradient full-bleed text-white p-4 p-md-5 mb-5 min-vh-100 d-flex align-items-center">
             <div className="row align-items-center">
               <div className="col-lg-7">
                 <h1 className="h2 fw-bold mb-2">Sisdental</h1>
@@ -86,7 +145,13 @@ export default function Cadastro() {
               </div>
               <div className="col-lg-5 d-none d-lg-block">
                 <div className="text-center">
-                  <i className="fas fa-tooth fa-7x opacity-75"></i>
+                  <img
+                    src="https://images.unsplash.com/photo-1588771930293-3410baf1a8dc?q=80&w=1200&auto=format&fit=crop"
+                    alt="Visão do painel Sisdental"
+                    className="img-fluid rounded-4 shadow-sm"
+                    style={{ maxHeight: 360, objectFit: 'cover' }}
+                    loading="lazy"
+                  />
                 </div>
               </div>
             </div>
@@ -124,6 +189,37 @@ export default function Cadastro() {
                     <li><i className="fas fa-star text-primary me-2"></i> Insights financeiros</li>
                     <li><i className="fas fa-star text-primary me-2"></i> Melhor experiência para o paciente</li>
                   </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Cards com imagens (features) */}
+          <div className="row g-4 mb-5">
+            <div className="col-md-4">
+              <div className="card h-100 shadow-sm border-0 rounded-4 card-hover overflow-hidden">
+                <img src="https://picsum.photos/seed/agenda/1200/800" alt="Agenda inteligente" className="card-img-top" loading="lazy" style={{ height: 160, objectFit: 'cover' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/vite.svg' }} />
+                <div className="card-body">
+                  <h5 className="card-title">Agenda inteligente</h5>
+                  <p className="text-muted mb-0">Confirmações automáticas e visão diária/mensal para reduzir faltas.</p>
+                </div>
+              </div>
+            </div>
+            <div className="col-md-4">
+              <div className="card h-100 shadow-sm border-0 rounded-4 card-hover overflow-hidden">
+                <img src="https://picsum.photos/seed/prontuario/1200/800" alt="Prontuário completo" className="card-img-top" loading="lazy" style={{ height: 160, objectFit: 'cover' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/vite.svg' }} />
+                <div className="card-body">
+                  <h5 className="card-title">Prontuário completo</h5>
+                  <p className="text-muted mb-0">Histórico clínico centralizado e odontograma para melhor acompanhamento.</p>
+                </div>
+              </div>
+            </div>
+            <div className="col-md-4">
+              <div className="card h-100 shadow-sm border-0 rounded-4 card-hover overflow-hidden">
+                <img src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=1200&auto=format&fit=crop" alt="Financeiro claro" className="card-img-top" loading="lazy" style={{ height: 160, objectFit: 'cover' }} />
+                <div className="card-body">
+                  <h5 className="card-title">Financeiro claro</h5>
+                  <p className="text-muted mb-0">Fluxo de caixa, relatórios e organização para decisões com dados.</p>
                 </div>
               </div>
             </div>
@@ -167,7 +263,38 @@ export default function Cadastro() {
               </div>
             </div>
 
-          <div id="planos" className="row g-4">
+          <div id="planos" className="">
+            <div className="text-center mb-4">
+              <h2 className="display-6">Escolha seu plano</h2>
+              <p className="text-muted mb-0">Teste grátis e sem fidelidade.</p>
+            </div>
+            <div className="row g-3 mb-3">
+              <div className="col-6 col-md-3">
+                <div className="p-3 bg-white border rounded-4 shadow-sm h-100 d-flex align-items-center gap-2">
+                  <i className="fas fa-shield-alt text-success"></i>
+                  <div className="small">Pagamento seguro</div>
+                </div>
+              </div>
+              <div className="col-6 col-md-3">
+                <div className="p-3 bg-white border rounded-4 shadow-sm h-100 d-flex align-items-center gap-2">
+                  <i className="fas fa-rotate-left text-primary"></i>
+                  <div className="small">7 dias de garantia</div>
+                </div>
+              </div>
+              <div className="col-6 col-md-3">
+                <div className="p-3 bg-white border rounded-4 shadow-sm h-100 d-flex align-items-center gap-2">
+                  <i className="fas fa-ban text-danger"></i>
+                  <div className="small">Sem fidelidade</div>
+                </div>
+              </div>
+              <div className="col-6 col-md-3">
+                <div className="p-3 bg-white border rounded-4 shadow-sm h-100 d-flex align-items-center gap-2">
+                  <i className="fas fa-headset text-success"></i>
+                  <div className="small">Suporte dedicado</div>
+                </div>
+              </div>
+            </div>
+            <div className="row g-4">
             <div className="col-md-6">
               <div className="card h-100 shadow-sm border-0 rounded-4 card-hover">
                 <div className="card-body d-flex flex-column">
@@ -195,11 +322,11 @@ export default function Cadastro() {
             </div>
 
             <div className="col-md-6">
-              <div className="card h-100 shadow-sm border-0 rounded-4 card-hover">
+              <div className="card h-100 plan-featured rounded-4 card-hover">
                 <div className="card-body d-flex flex-column">
                   <div className="d-flex justify-content-between align-items-start mb-2">
                     <h5 className="card-title mb-0">Plano Profissional</h5>
-                    <span className="badge badge-popular">Mais Popular</span>
+                    <span className="badge badge-recommended">Plano recomendado</span>
                   </div>
                   <div className="mb-2">
                     <span className="display-6 fw-bold text-primary">R$ 99</span>
@@ -221,9 +348,10 @@ export default function Cadastro() {
               </div>
             </div>
           </div>
+        </div>
 
-          <div className="faq-box mt-4">
-            <h6 className="mb-2">Dúvidas frequentes</h6>
+          <div id="duvidas" className="faq-box mt-5 bg-light rounded-4 p-4">
+            <h4 className="mb-3">Dúvidas frequentes</h4>
             <div className="small">
               <details className="mb-2">
                 <summary className="fw-semibold d-flex align-items-center justify-content-between">
@@ -249,10 +377,10 @@ export default function Cadastro() {
             </div>
           </div>
 
-          <div id="comparativo" className="mt-5">
-            <h5 className="mb-3 text-center">Comparativo de Recursos</h5>
+          <div id="comparativo" className="mt-5 bg-light rounded-4 p-4">
+            <h4 className="mb-3 text-center">Comparativo de recursos</h4>
             <div className="table-responsive">
-              <table className="table align-middle">
+              <table className="table align-middle table-hover">
                 <thead>
                   <tr>
                     <th>Recurso</th>
@@ -296,42 +424,63 @@ export default function Cadastro() {
             </div>
           </div>
 
-          <div id="depoimentos" className="mt-5">
-            <h5 className="mb-3 text-center">Depoimentos</h5>
-            <div className="row g-3">
-              <div className="col-md-4">
-                <div className="card border-0 shadow-sm rounded-4 h-100 card-hover">
-                  <div className="card-body">
-                    <p className="mb-2">“O Sisdental nos ajudou a organizar a agenda e reduzir faltas.”</p>
-                    <div className="small text-muted">Clínica Sorriso — São Paulo</div>
-                  </div>
-                </div>
-              </div>
-              <div className="col-md-4">
-                <div className="card border-0 shadow-sm rounded-4 h-100 card-hover">
-                  <div className="card-body">
-                    <p className="mb-2">“Facilitou o acompanhamento do histórico do paciente e do financeiro.”</p>
-                    <div className="small text-muted">Odonto Vida — Belo Horizonte</div>
-                  </div>
-                </div>
-              </div>
-              <div className="col-md-4">
-                <div className="card border-0 shadow-sm rounded-4 h-100 card-hover">
-                  <div className="card-body">
-                    <p className="mb-2">“Equipe de suporte atenciosa e plataforma simples de usar.”</p>
-                    <div className="small text-muted">Clínica Bem-Estar — Curitiba</div>
+          <div id="depoimentos" className="mt-5 bg-light rounded-4 p-4">
+            <h4 className="mb-3 text-center">Depoimentos</h4>
+            <div className="row justify-content-center">
+              <div className="col-md-8 col-lg-6">
+                <div className="card border-0 shadow-sm rounded-4 h-100 card-hover carousel-fade">
+                  <div className="card-body text-center">
+                    <p className="mb-2">“{testimonials[activeTestimonial].quote}”</p>
+                    <div className="small text-muted">{testimonials[activeTestimonial].author}</div>
                   </div>
                 </div>
               </div>
             </div>
+            <div className="d-flex justify-content-center mt-3 carousel-dots">
+              {testimonials.map((_, idx) => (
+                <button
+                  key={idx}
+                  aria-label={`Depoimento ${idx + 1}`}
+                  className={idx === activeTestimonial ? 'active' : ''}
+                  onClick={() => setActiveTestimonial(idx)}
+                />
+              ))}
+            </div>
           </div>
 
           <div className="text-center mt-4">
-            <Link to="/login">Voltar ao Login</Link>
+            <Link to="/login" className="btn btn-outline-secondary btn-lift">Voltar ao Login</Link>
           </div>
         </div>
       </div>
     </div>
+    <footer className="site-footer py-5 mt-5">
+      <div className="container">
+        <div className="row g-3 align-items-center">
+          <div className="col-md-4">
+            <div className="d-flex align-items-center gap-2">
+              <i className="fas fa-tooth text-primary"></i>
+              <strong className="mb-0">Sisdental</strong>
+            </div>
+            <div className="small text-white-50 mt-2">© {new Date().getFullYear()} Sisdental — Todos os direitos reservados.</div>
+          </div>
+          <div className="col-md-4">
+            <ul className="list-unstyled small mb-0">
+              <li><a href="#planos" className="link-light text-decoration-none">Planos</a></li>
+              <li><a href="#comparativo" className="link-light text-decoration-none">Comparativo</a></li>
+              <li><a href="#depoimentos" className="link-light text-decoration-none">Depoimentos</a></li>
+            </ul>
+          </div>
+          <div className="col-md-4">
+            <div className="small text-uppercase text-white-50">Acesso</div>
+            <ul className="list-unstyled small mb-0">
+              <li><Link to="/login" className="link-light text-decoration-none">Entrar</Link></li>
+              <li><Link to="/cadastro#planos" className="link-light text-decoration-none">Teste grátis</Link></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </footer>
     </>
   )
 }

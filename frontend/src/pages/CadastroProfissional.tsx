@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 
 export default function CadastroProfissional() {
@@ -11,6 +11,34 @@ export default function CadastroProfissional() {
   const [showPassword, setShowPassword] = useState(false)
   const [info] = useState<string | null>(null)
   const [acceptTerms, setAcceptTerms] = useState(false)
+
+  useEffect(() => {
+    const SITE_URL = 'https://sisdental.com.br';
+    const PAGE_URL = `${SITE_URL}/cadastro/profissional`;
+    const TITLE = 'Sisdental | Cadastro Plano Profissional';
+    const DESCRIPTION = 'Cadastre-se no Plano Profissional do Sisdental e tenha recursos avançados.';
+
+    const nodes: HTMLElement[] = [];
+    const add = (tag: keyof HTMLElementTagNameMap, attrs: Record<string, string>) => {
+      const el = document.createElement(tag);
+      Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v));
+      document.head.appendChild(el);
+      nodes.push(el);
+      return el;
+    };
+
+    document.title = TITLE;
+    add('meta', { id: 'meta-desc-cadastro-profissional', name: 'description', content: DESCRIPTION });
+    add('link', { id: 'link-canonical-cadastro-profissional', rel: 'canonical', href: PAGE_URL });
+
+    add('meta', { id: 'og-title-cadastro-profissional', property: 'og:title', content: TITLE });
+    add('meta', { id: 'og:description-cadastro-profissional', property: 'og:description', content: DESCRIPTION });
+    add('meta', { id: 'og:url-cadastro-profissional', property: 'og:url', content: PAGE_URL });
+
+    add('meta', { id: 'tw-card-cadastro-profissional', name: 'twitter:card', content: 'summary' });
+
+    return () => { nodes.forEach((n) => n.parentNode && n.parentNode.removeChild(n)); };
+  }, [])
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -75,7 +103,25 @@ export default function CadastroProfissional() {
   }
 
   return (
-    <div className="container py-5 min-vh-100 d-flex align-items-center">
+    <>
+      <div className="container py-5 pt-nav">
+      <header className="glass-nav mb-4">
+        <div className="container d-flex align-items-center justify-content-between py-2">
+          <Link to="/" className="d-flex align-items-center text-decoration-none">
+            <i className="fas fa-tooth text-primary me-2"></i>
+            <span className="fw-semibold text-dark">Sisdental</span>
+          </Link>
+          <nav className="d-none d-md-flex align-items-center gap-3">
+            <a href="/cadastro#planos" className="text-decoration-none text-dark">Planos</a>
+            <a href="/cadastro#comparativo" className="text-decoration-none text-dark">Comparativo</a>
+            <a href="/cadastro#depoimentos" className="text-decoration-none text-dark">Depoimentos</a>
+          </nav>
+          <div className="d-flex align-items-center gap-2">
+            <Link to="/login" className="btn btn-outline-primary btn-sm btn-lift">Entrar</Link>
+            <Link to="/cadastro#planos" className="btn btn-primary btn-sm btn-lift">Teste grátis</Link>
+          </div>
+        </div>
+      </header>
       <div className="row justify-content-center w-100">
         <div className="col-sm-10 col-md-8 col-lg-6">
           <div className="card shadow-sm border-0">
@@ -150,17 +196,42 @@ export default function CadastroProfissional() {
                   </details>
                 </div>
               </div>
-              <div className="mt-3 text-center">
-                <Link to="/cadastro">Voltar aos Planos</Link>
-              </div>
-              <div className="mt-2 text-center">
-                <small className="text-muted">Já tem conta?</small>
-                <div><Link to="/login">Entrar</Link></div>
+              <div className="d-flex justify-content-center gap-2 mt-3">
+                <Link to="/cadastro" className="btn btn-outline-secondary btn-lift">Voltar aos Planos</Link>
+                <Link to="/login" className="btn btn-primary btn-lift">Entrar</Link>
               </div>
             </div>
           </div>
         </div>
       </div>
     </div>
+      <footer className="site-footer py-5 mt-5">
+        <div className="container">
+          <div className="row g-3 align-items-center">
+            <div className="col-md-4">
+              <div className="d-flex align-items-center gap-2">
+                <i className="fas fa-tooth text-primary"></i>
+                <strong className="mb-0">Sisdental</strong>
+              </div>
+              <div className="small text-white-50 mt-2">© {new Date().getFullYear()} Sisdental — Todos os direitos reservados.</div>
+            </div>
+            <div className="col-md-4">
+              <ul className="list-unstyled small mb-0">
+                <li><a href="/cadastro#planos" className="link-light text-decoration-none">Planos</a></li>
+                <li><a href="/cadastro#comparativo" className="link-light text-decoration-none">Comparativo</a></li>
+                <li><a href="/cadastro#depoimentos" className="link-light text-decoration-none">Depoimentos</a></li>
+              </ul>
+            </div>
+            <div className="col-md-4">
+              <div className="small text-uppercase text-white-50">Acesso</div>
+              <ul className="list-unstyled small mb-0">
+                <li><Link to="/login" className="link-light text-decoration-none">Entrar</Link></li>
+                <li><Link to="/cadastro#planos" className="link-light text-decoration-none">Teste grátis</Link></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </footer>
+     </>
   )
 }

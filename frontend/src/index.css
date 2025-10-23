@@ -262,3 +262,49 @@ body, html {
 @media (max-width: 576px) {
   .pt-nav { padding-top: 72px; }
 }
+
+/* Full-bleed utility to extend a section to viewport width while inside a container */
+.full-bleed {
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  width: 100vw;
+}
+
+/* Footer theming via CSS variables */
+:root {
+  --footer-bg: #0f172a; /* slate-900 */
+  --footer-link: #e5e7eb; /* gray-200 */
+  --footer-muted: #94a3b8; /* slate-400 */
+}
+.site-footer {
+  background-color: var(--footer-bg) !important;
+  color: var(--footer-link) !important;
+}
+.site-footer a { color: var(--footer-link) !important; }
+.site-footer .text-white-50 { color: var(--footer-muted) !important; }
+
+/* Featured plan accent */
+.plan-featured {
+  border: 2px solid rgba(13,110,253,.35) !important;
+  box-shadow: 0 .75rem 1.5rem rgba(13,110,253,.15) !important;
+}
+.badge-recommended {
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(22,163,74,.35);
+}
+
+/* Simple carousel dots */
+.carousel-dots { display: flex; gap: 8px; }
+.carousel-dots button {
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  border: 0;
+  background: rgba(0,0,0,.2);
+}
+.carousel-dots button.active { background: var(--primary-color); }
+.carousel-fade { transition: opacity .4s ease-in-out; }
