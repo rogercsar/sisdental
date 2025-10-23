@@ -53,3 +53,18 @@ body, html {
         margin-left: 0;
     }
 }
+
+/* Badges personalizados para agendamentos */
+.badge-hoje {
+  background-color: #16a34a; /* verde */
+  color: #fff;
+}
+.badge-amanha {
+  background-color: #6b7280; /* cinza */
+  color: #fff;
+}
+
+/* Destaque de linhas atrasadas (financeiro) */
+.table-danger {
+  --bs-table-bg: #fff0f0; /* suaviza fundo para linhas vencidas */
+}

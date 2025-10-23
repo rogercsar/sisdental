@@ -61,7 +61,7 @@ const PortalLogin: React.FC = () => {
           <div className="card shadow-sm border-0">
             <div className="card-body p-4">
               <div className="text-center mb-3">
-                <i className="fas fa-user-circle fa-2x text-primary"></i>
+                <img src="/logo-sisdental.png" alt="Sisdental Odonto" height={180} />
                 <h4 className="mt-2 mb-0">Portal do Paciente</h4>
                 <p className="text-muted small">Acompanhe consultas e documentos</p>
               </div>

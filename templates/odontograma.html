@@ -252,6 +252,36 @@
   <!-- Fim do Card da Legenda -->
   
 
+<!-- Painéis compactos: Financeiro e Agendamentos -->
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card shadow-sm">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="fas fa-dollar-sign me-2"></i>Últimos Lançamentos Financeiros</h5>
+        <a href="{{ url_for('financeiro') }}?paciente_id={{ paciente_id }}" class="btn btn-outline-primary btn-sm">Ver todos</a>
+      </div>
+      <div class="card-body">
+        <div id="financeiroResumo">
+          <p class="text-muted mb-0">Nenhum lançamento encontrado.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card shadow-sm">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Próximos Agendamentos</h5>
+        <a href="{{ url_for('agendamentos') }}?paciente={{ nome_paciente }}" class="btn btn-outline-primary btn-sm">Ver todos</a>
+      </div>
+      <div class="card-body">
+        <ul id="agendamentosProximosList" class="list-group list-group-flush">
+          <li class="list-group-item text-muted">Nenhum agendamento encontrado.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
 <hr class="my-4">
 
 <h3 class="text-center mb-3">Tratamentos Registrados</h3>
@@ -709,7 +739,107 @@
     }
 
     // --- Inicialização ---
-    carregarTratamentos(); // Carrega dados iniciais
+    const TRATAMENTOS_INICIAIS = {{ tratamentos_iniciais|default(none)|tojson|safe }};
+    const FINANCEIRO_RECENTES = {{ financeiro_recentes|default(none)|tojson|safe }};
+    const AGENDAMENTOS_PROXIMOS = {{ agendamentos_proximos|default(none)|tojson|safe }};
+
+     if (Array.isArray(TRATAMENTOS_INICIAIS)) {
+         tratamentosSalvos = TRATAMENTOS_INICIAIS.map(t => ({
+             ...t,
+             concluido: t.concluido === true || t.concluido === 'true'
+         }));
+         renderizarTabela();
+         atualizarVisualizacaoDentes();
+     } else {
+         carregarTratamentos(); // Fallback para carregar via API
+     }
+
+     // --- Painel Financeiro: resumo e últimos 5 ---
+     function renderFinanceiroResumo() {
+       const container = document.getElementById('financeiroResumo');
+       if (!container) return;
+       if (!Array.isArray(FINANCEIRO_RECENTES) || FINANCEIRO_RECENTES.length === 0) {
+         container.innerHTML = '<p class="text-muted mb-0">Nenhum lançamento encontrado.</p>';
+         return;
+       }
+       const today = new Date();
+       let totalPago = 0;
+       let totalPendente = 0;
+       const rowsHtml = FINANCEIRO_RECENTES.map(f => {
+         const isPago = String(f.status).toLowerCase() === 'pago';
+         const valorNum = Number(f.valor || 0);
+         if (isPago) totalPago += valorNum; else totalPendente += valorNum;
+         const venc = formatDate(f.data_vencimento);
+         const valorFmt = formatCurrency(valorNum);
+         const overdue = !isPago && f.data_vencimento && new Date(f.data_vencimento + 'T00:00:00') < today;
+         const badgeStatus = isPago ? '<span class="badge bg-success">Pago</span>' : '<span class="badge bg-warning text-dark">Pendente</span>';
+         const badgeOverdue = overdue ? '<span class="badge bg-danger ms-2">Atrasado</span>' : '';
+         const descricao = f.descricao || '-';
+         return `<tr>
+           <td>${venc}</td>
+           <td>${descricao}</td>
+           <td>${valorFmt}</td>
+           <td>${badgeStatus}${badgeOverdue}</td>
+         </tr>`;
+       }).join('');
+       container.innerHTML = `
+         <div class="table-responsive">
+           <table class="table table-sm table-striped">
+             <thead>
+               <tr>
+                 <th>Vencimento</th>
+                 <th>Descrição</th>
+                 <th>Valor</th>
+                 <th>Status</th>
+               </tr>
+             </thead>
+             <tbody>${rowsHtml}</tbody>
+           </table>
+         </div>
+         <div class="d-flex justify-content-end gap-2">
+           <span class="badge bg-success">Pago: ${formatCurrency(totalPago)}</span>
+           <span class="badge bg-warning text-dark">Pendente: ${formatCurrency(totalPendente)}</span>
+         </div>
+       `;
+     }
+
+     // --- Painel Agendamentos: próximos até 5 ---
+     function renderAgendamentosProximos() {
+       const list = document.getElementById('agendamentosProximosList');
+       if (!list) return;
+       if (!Array.isArray(AGENDAMENTOS_PROXIMOS) || AGENDAMENTOS_PROXIMOS.length === 0) {
+         list.innerHTML = '<li class="list-group-item text-muted">Nenhum agendamento encontrado.</li>';
+         return;
+       }
+       const today = new Date();
+       const todayIso = today.toISOString().split('T')[0];
+       const tomorrow = new Date(today.getTime() + 24*60*60*1000);
+       const tomorrowIso = tomorrow.toISOString().split('T')[0];
+       list.innerHTML = AGENDAMENTOS_PROXIMOS.map(a => {
+         const dataFmt = formatDate(a.data);
+         const horaFmt = (a.hora || '').slice(0,5) || '-';
+         const statusLower = String(a.status || '').toLowerCase();
+         const servico = a.servico || '-';
+         const dayBadge = a.data === todayIso
+           ? '<span class="badge badge-hoje ms-2">Hoje</span>'
+           : (a.data === tomorrowIso ? '<span class="badge badge-amanha ms-2">Amanhã</span>' : '');
+         const badge =
+           statusLower === 'agendado' ? '<span class="badge bg-info text-dark">Agendado</span>' :
+           statusLower === 'confirmado' ? '<span class="badge bg-primary">Confirmado</span>' :
+           (statusLower === 'concluido' || statusLower === 'realizado') ? '<span class="badge bg-success">Realizado</span>' :
+           statusLower === 'cancelado' ? '<span class="badge bg-secondary">Cancelado</span>' :
+           (statusLower.includes('não compareceu') ? '<span class="badge bg-danger">Não Compareceu</span>' :
+            `<span class="badge bg-secondary">${a.status || '-'}</span>`);
+         return `<li class="list-group-item d-flex justify-content-between align-items-center">
+           <span><strong>${dataFmt}</strong> ${dayBadge} às ${horaFmt} — ${servico}</span>
+           ${badge}
+         </li>`;
+       }).join('');
+     }
+
+     // Renderiza painéis se houver dados
+     renderFinanceiroResumo();
+     renderAgendamentosProximos();
 
  }); // Fim do DOMContentLoaded
 </script>

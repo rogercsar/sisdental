@@ -700,6 +700,87 @@ def financeiro():
 
     # Remova todo o bloco try/except/finally que buscava dados e tratava POST.
 
+@app.route('/agendamentos', methods=['GET'])
+def agendamentos():
+    if not session.get('logado'):
+        return redirect(url_for('login'))
+
+    filtros = {
+        'paciente': request.args.get('paciente', ''),
+        'data': request.args.get('data', ''),
+        'status': request.args.get('status', '')
+    }
+
+    sb = get_supabase()
+    try:
+        # Se houver filtro por nome do paciente, obtenha os IDs correspondentes
+        allowed_ids = None
+        if filtros.get('paciente'):
+            pres = sb.table('pacientes').select('id, nome').ilike('nome', f"%{filtros['paciente']}%").execute()
+            prows = getattr(pres, 'data', None) or []
+            allowed_ids = [p.get('id') for p in prows]
+            if not allowed_ids:
+                # Nenhum paciente encontrado para o nome filtrado
+                return render_template('agendamentos.html', filtros=filtros, agendamentos_lista=[])
+
+        q = sb.table('agendamentos').select('id, paciente_id, servico, data, hora, status, observacoes')
+        if allowed_ids is not None:
+            q = q.in_('paciente_id', allowed_ids)
+        if filtros.get('data'):
+            q = q.eq('data', filtros['data'])
+        if filtros.get('status'):
+            q = q.eq('status', filtros['status'])
+        q = q.order('data', ascending=True).order('hora', ascending=True)
+        res = q.execute()
+        rows = getattr(res, 'data', None) or []
+
+        # Enriquecer com nomes dos pacientes
+        ids_set = {r.get('paciente_id') for r in rows if r.get('paciente_id') is not None}
+        nomes_por_id = {}
+        if ids_set:
+            p2 = sb.table('pacientes').select('id, nome').in_('id', list(ids_set)).execute()
+            p2rows = getattr(p2, 'data', None) or []
+            nomes_por_id = {p.get('id'): p.get('nome') for p in p2rows}
+
+        hoje = datetime.date.today()
+        amanha = hoje + datetime.timedelta(days=1)
+
+        ag_list = []
+        for a in rows:
+            dstr = a.get('data')
+            data_fmt = dstr or '-'
+            e_hoje = False
+            e_amanha = False
+            if isinstance(dstr, str) and dstr:
+                try:
+                    dobj = datetime.datetime.strptime(dstr, '%Y-%m-%d').date()
+                    data_fmt = dobj.strftime('%d/%m/%Y')
+                    e_hoje = (dobj == hoje)
+                    e_amanha = (dobj == amanha)
+                except Exception:
+                    pass
+            hora_raw = a.get('hora') or ''
+            hora_fmt = (hora_raw or '')[:5]
+            ag_list.append({
+                'id': a.get('id'),
+                'paciente_id': a.get('paciente_id'),
+                'nome': nomes_por_id.get(a.get('paciente_id')) or 'Paciente',
+                'servico': a.get('servico'),
+                'data_formatada': data_fmt,
+                'hora_formatada': hora_fmt,
+                'status': a.get('status') or 'Agendado',
+                'observacoes': a.get('observacoes') or '',
+                'e_hoje': e_hoje,
+                'e_amanha': e_amanha,
+            })
+
+        return render_template('agendamentos.html', filtros=filtros, agendamentos_lista=ag_list)
+    except Exception as e:
+        print(f"Erro ao carregar agendamentos: {e}")
+        traceback.print_exc()
+        flash('Erro ao carregar agendamentos.', 'danger')
+        return render_template('agendamentos.html', filtros=filtros, agendamentos_lista=[])
+
 @app.route('/api/financeiro/lancamentos', methods=['GET'])
 def api_get_lancamentos():
     if not session.get('logado'):
@@ -707,7 +788,16 @@ def api_get_lancamentos():
 
     sb = get_supabase()
     try:
-        res = sb.table('financeiro').select('*').order('data_vencimento', desc=True).execute()
+        # Filtros opcionais
+        paciente_id = request.args.get('paciente_id', type=int)
+        status = request.args.get('status', type=str)
+
+        q = sb.table('financeiro').select('*').order('data_vencimento', desc=True)
+        if paciente_id is not None:
+            q = q.eq('paciente_id', paciente_id)
+        if status:
+            q = q.eq('status', status)
+        res = q.execute()
         lancamentos = getattr(res, 'data', None) or []
 
         # Enriquecer com nome do paciente sem join direto
@@ -884,21 +974,49 @@ def api_update_lancamento_status(id):
 def odontograma_paciente(paciente_id):
     if not session.get('logado'):
         return redirect(url_for('login'))
-    cur = None
     try:
-        cur = mysql.connection.cursor()
-        cur.execute("SELECT id, nome FROM pacientes WHERE id = %s", (paciente_id,))
-        paciente = cur.fetchone()
-        if not paciente:
+        sb = get_supabase()
+        res = sb.table('pacientes').select('id, nome').eq('id', paciente_id).limit(1).execute()
+        rows = getattr(res, 'data', None) or []
+        if not rows:
             flash('Paciente não encontrado.', 'danger')
             return redirect(url_for('pacientes'))
-        return render_template('odontograma.html', paciente_id=paciente_id, nome_paciente=paciente[1])
+        nome_paciente = rows[0].get('nome') or 'Paciente'
+        # Pré-carregar tratamentos do odontograma
+        tres = sb.table('odontograma_tratamentos').select('id, dente_numero, tipo_tratamento, data_tratamento, observacoes, proxima_sessao, valor, concluido').eq('paciente_id', paciente_id).order('data_criacao', ascending=True).execute()
+        tratamentos = getattr(tres, 'data', None) or []
+        for t in tratamentos:
+            if t.get('data_tratamento'):
+                t['data_tratamento'] = str(t['data_tratamento'])[:10]
+            if t.get('proxima_sessao'):
+                t['proxima_sessao'] = str(t['proxima_sessao'])[:10]
+            t['concluido'] = bool(t.get('concluido', False))
+
+        # Pré-carregar últimos 5 lançamentos financeiros do paciente
+        fres = sb.table('financeiro').select('id, descricao, valor, status, data_vencimento, data_pagamento, tratamento_id').eq('paciente_id', paciente_id).order('data_vencimento', desc=True).limit(5).execute()
+        financeiros = getattr(fres, 'data', None) or []
+        for f in financeiros:
+            if f.get('data_vencimento'):
+                f['data_vencimento'] = str(f['data_vencimento'])[:10]
+            if f.get('data_pagamento'):
+                f['data_pagamento'] = str(f['data_pagamento'])[:10]
+
+        # Pré-carregar próximos agendamentos do paciente (até 5)
+        today_str = date.today().isoformat()
+        ares = sb.table('agendamentos').select('id, servico, data, hora, observacoes, status').eq('paciente_id', paciente_id).gte('data', today_str).order('data', ascending=True).order('hora', ascending=True).limit(5).execute()
+        agendamentos = getattr(ares, 'data', None) or []
+        for a in agendamentos:
+            if a.get('data'):
+                a['data'] = str(a['data'])[:10]
+            if a.get('hora'):
+                a['hora'] = str(a['hora'])[:8]
+
+        return render_template('odontograma.html', paciente_id=paciente_id, nome_paciente=nome_paciente, tratamentos_iniciais=tratamentos, financeiro_recentes=financeiros, agendamentos_proximos=agendamentos)
     except Exception as e:
-        flash(f"Erro ao carregar odontograma: {e}", "danger")
+        print(f"Erro ao carregar odontograma para paciente {paciente_id}: {e}")
+        traceback.print_exc()
+        flash('Erro ao carregar odontograma.', 'danger')
         return redirect(url_for('pacientes'))
-    finally:
-        if cur:
-            cur.close()
 
 # --- API Endpoints para Odontograma ---
 
@@ -909,7 +1027,7 @@ def get_tratamentos_paciente(paciente_id):
         return jsonify({"erro": "Não autorizado"}), 401
     sb = get_supabase()
     try:
-        res = sb.table('odontograma_tratamentos').select('id, dente_numero, tipo_tratamento, data_tratamento, observacoes, proxima_sessao, concluido').eq('paciente_id', paciente_id).order('data_criacao', ascending=True).execute()
+        res = sb.table('odontograma_tratamentos').select('id, dente_numero, tipo_tratamento, data_tratamento, observacoes, proxima_sessao, valor, concluido').eq('paciente_id', paciente_id).order('data_criacao', ascending=True).execute()
         tratamentos = getattr(res, 'data', None) or []
         # Formatar datas para YYYY-MM-DD e garantir booleano
         for t in tratamentos:
@@ -928,541 +1046,187 @@ def get_tratamentos_paciente(paciente_id):
 # POST: Adicionar um novo tratamento E criar lançamento financeiro se houver valor
 @app.route('/api/odontograma/<int:paciente_id>/tratamentos', methods=['POST'])
 def add_tratamento_paciente(paciente_id):
-    print("\n--- [API Odonto POST] Iniciando requisição ---") # Log 1
     if not session.get('logado'):
-        print("--- [API Odonto POST] ERRO: Não autorizado ---")
         return jsonify({"erro": "Não autorizado"}), 401
 
+    sb = get_supabase()
+
     # Verifica paciente
-    cur_check = None
     try:
-        cur_check = mysql.connection.cursor()
-        cur_check.execute("SELECT id FROM pacientes WHERE id = %s", (paciente_id,))
-        if not cur_check.fetchone():
-            print(f"--- [API Odonto POST] ERRO: Paciente {paciente_id} não encontrado ---")
+        pres = sb.table('pacientes').select('id').eq('id', paciente_id).limit(1).execute()
+        if not (getattr(pres, 'data', None) or []):
             return jsonify({"erro": "Paciente não encontrado"}), 404
     except Exception as e_check:
-        print(f"--- [API Odonto POST] ERRO ao verificar paciente {paciente_id}: {e_check} ---")
+        print(f"Erro Supabase ao verificar paciente {paciente_id}: {e_check}")
         traceback.print_exc()
         return jsonify({"erro": "Erro ao verificar paciente"}), 500
-    finally:
-        if cur_check: cur_check.close()
 
-    # Processa dados
     dados = request.json
     if not dados:
-        print("--- [API Odonto POST] ERRO: Requisição sem JSON ---")
         return jsonify({"erro": "Requisição sem corpo JSON"}), 400
-    print(f"--- [API Odonto POST] Dados recebidos: {dados} ---") # Log 2
 
-    # Extrai dados
-    dente_numero = dados.get('denteNumero'); tipo_tratamento = dados.get('tipo')
-    data_tratamento = dados.get('data'); observacoes = dados.get('observacoes')
-    proxima_sessao = dados.get('proximaSessao') or None; valor_tratamento_str = dados.get('valor')
+    dente_numero = dados.get('denteNumero')
+    tipo_tratamento = dados.get('tipo')
+    data_tratamento = dados.get('data')
+    observacoes = dados.get('observacoes')
+    proxima_sessao = dados.get('proximaSessao') or None
+    valor_tratamento_str = dados.get('valor')
     concluido = bool(dados.get('concluido', False))
 
-    # Valida obrigatórios
     required = ['denteNumero', 'tipo', 'data']
     missing = [f for f in required if not dados.get(f)]
     if missing:
-        print(f"--- [API Odonto POST] ERRO: Campos obrigatórios faltando: {missing} ---")
         return jsonify({"erro": f"Campos obrigatórios: {', '.join(missing)}"}), 400
 
-    # Valida e converte valor
     valor_tratamento = None
     if valor_tratamento_str is not None and valor_tratamento_str != '':
         try:
             valor_tratamento = float(valor_tratamento_str)
             if valor_tratamento < 0:
-                print("--- [API Odonto POST] ERRO: Valor negativo ---")
                 return jsonify({"erro": "Valor negativo"}), 400
         except (ValueError, TypeError):
-            print("--- [API Odonto POST] ERRO: Valor inválido ---")
             return jsonify({"erro": "Valor inválido"}), 400
-    print(f"--- [API Odonto POST] Valor processado: {valor_tratamento} ---") # Log 3
 
-    # Valida datas
     try:
-        if data_tratamento: datetime.datetime.strptime(data_tratamento, '%Y-%m-%d')
-        if proxima_sessao: datetime.datetime.strptime(proxima_sessao, '%Y-%m-%d')
+        if data_tratamento:
+            datetime.datetime.strptime(data_tratamento, '%Y-%m-%d')
+        if proxima_sessao:
+            datetime.datetime.strptime(proxima_sessao, '%Y-%m-%d')
     except ValueError:
-         print("--- [API Odonto POST] ERRO: Formato de data inválido ---")
-         return jsonify({"erro": "Formato data inválido"}), 400
-    print("--- [API Odonto POST] Datas validadas ---") # Log 4
+        return jsonify({"erro": "Formato data inválido"}), 400
 
-    # Transação BD
-    cur = None
     try:
-        cur = mysql.connection.cursor()
-        print("--- [API Odonto POST] Iniciando transação BD ---") # Log 5
+        insert_payload = {
+            'paciente_id': paciente_id,
+            'dente_numero': dente_numero,
+            'tipo_tratamento': tipo_tratamento,
+            'data_tratamento': data_tratamento,
+            'observacoes': observacoes,
+            'proxima_sessao': proxima_sessao,
+            'valor': valor_tratamento,
+            'concluido': concluido
+        }
+        res = sb.table('odontograma_tratamentos').insert(insert_payload).select('*').execute()
+        rows = getattr(res, 'data', None) or []
+        if not rows:
+            return jsonify({"erro": "Falha ao salvar tratamento"}), 500
+        novo_trat = rows[0]
+        novo_trat_id = novo_trat.get('id')
 
-        # 1. INSERT Odontograma
-        sql_trat = """INSERT INTO odontograma_tratamentos (paciente_id, dente_numero, tipo_tratamento, data_tratamento,
-                      observacoes, proxima_sessao, valor, concluido) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)"""
-        params_trat = (paciente_id, dente_numero, tipo_tratamento, data_tratamento, observacoes,
-                       proxima_sessao, valor_tratamento, concluido)
-        print(f"--- [API Odonto POST] Executando SQL Tratamento: {sql_trat} com params {params_trat} ---") # Log 6
-        cur.execute(sql_trat, params_trat)
-        novo_tratamento_id = cur.lastrowid
-        print(f"--- [API Odonto POST] Tratamento ID {novo_tratamento_id} inserido (rowcount: {cur.rowcount}). ---") # Log 7
-
-        # 2. INSERT Financeiro (Condicional)
-        if valor_tratamento is not None and valor_tratamento > 0:
+        if valor_tratamento is not None and valor_tratamento > 0 and novo_trat_id:
             desc_fin = f"Trat.: {tipo_tratamento} (Dente {dente_numero})"
-            sql_fin = """INSERT INTO financeiro (paciente_id, tratamento_id, descricao, valor, status, data_vencimento, data_pagamento)
-                         VALUES (%s, %s, %s, %s, %s, %s, %s)"""
-            params_fin = (paciente_id, novo_tratamento_id, desc_fin, valor_tratamento, 'pendente', data_tratamento, None)
-            print(f"--- [API Odonto POST] Executando SQL Financeiro: {sql_fin} com params {params_fin} ---") # Log 8
-            cur.execute(sql_fin, params_fin)
-            print(f"--- [API Odonto POST] Financeiro inserido (rowcount: {cur.rowcount}). ---") # Log 9
-        else:
-            print(f"--- [API Odonto POST] Valor ({valor_tratamento}) não requer financeiro. ---") # Log 8/9 Alternativo
+            fin_payload = {
+                'paciente_id': paciente_id,
+                'tratamento_id': novo_trat_id,
+                'descricao': desc_fin,
+                'valor': valor_tratamento,
+                'status': 'pendente',
+                'data_vencimento': data_tratamento,
+                'data_pagamento': None
+            }
+            sb.table('financeiro').insert(fin_payload).execute()
 
-        # 3. COMMIT
-        print("--- [API Odonto POST] Tentando realizar commit... ---") # Log 10
-        mysql.connection.commit()
-        print("--- [API Odonto POST] Commit realizado com sucesso. ---") # Log 11
-
-        # 4. Rebuscar e retornar
-        print(f"--- [API Odonto POST] Rebuscando tratamento ID {novo_tratamento_id}... ---") # Log 12
-        cur.execute("SELECT * FROM odontograma_tratamentos WHERE id = %s", (novo_tratamento_id,))
-        novo_tratamento_dict = format_for_json(cur.fetchone())
-        if novo_tratamento_dict:
-            print("--- [API Odonto POST] Tratamento rebuscado. Retornando JSON de sucesso. ---") # Log 13
-            return jsonify(novo_tratamento_dict), 201
-        else:
-            print("--- [API Odonto POST] ERRO: Falha ao rebuscar tratamento após insert/commit. ---") # Log 13 Alternativo
-            return jsonify({"sucesso": True, "id": novo_tratamento_id, "msg": "Salvo, erro ao rebuscar."}), 201
-
+        return jsonify(format_for_json(novo_trat)), 201
     except Exception as e:
-        print("\n" + "="*10 + f" !!! ERRO DURANTE TRANSAÇÃO !!! " + "="*10) # Log Erro 1
-        print(f"--- [API Odonto POST] Erro na transação: {e} ---") # Log Erro 2
-        traceback.print_exc() # Log Erro 3 (Traceback completo)
-        if mysql.connection:
-            print("--- [API Odonto POST] Realizando Rollback... ---") # Log Erro 4
-            try:
-                mysql.connection.rollback()
-                print("--- [API Odonto POST] Rollback realizado. ---") # Log Erro 5
-            except Exception as rb_err:
-                print(f"--- [API Odonto POST] ERRO AO REALIZAR ROLLBACK: {rb_err} ---") # Log Erro 6
-        # Retorna JSON de erro, NÃO HTML
+        print(f"Erro Supabase ao salvar tratamento: {e}")
+        traceback.print_exc()
         return jsonify({"erro": f"Erro interno ao salvar: {str(e)}"}), 500
-    finally:
-        if cur:
-            cur.close()
-            print("--- [API Odonto POST] Cursor da transação fechado. ---") # Log Final
-
 
 @app.route('/api/odontograma/tratamentos/<int:tratamento_id>', methods=['DELETE'])
 def delete_tratamento(tratamento_id):
-    print(f"\n--- [API Odonto DELETE] Iniciando requisição para ID: {tratamento_id} ---") # Log D1
     if not session.get('logado'):
-        print("--- [API Odonto DELETE] ERRO: Não autorizado ---")
         return jsonify({"erro": "Não autorizado"}), 401
-    cur = None
+    sb = get_supabase()
     try:
-        cur = mysql.connection.cursor()
-        print("--- [API Odonto DELETE] Iniciando transação BD ---") # Log D2
+        sel = sb.table('odontograma_tratamentos').select('id').eq('id', tratamento_id).limit(1).execute()
+        if not (getattr(sel, 'data', None) or []):
+            return jsonify({"erro": "Tratamento não encontrado"}), 404
 
-        # Opcional: Excluir financeiro associado
-        sql_fin_del = "DELETE FROM financeiro WHERE tratamento_id = %s"
-        params_fin_del = (tratamento_id,)
-        print(f"--- [API Odonto DELETE] Executando SQL Delete Financeiro: {sql_fin_del} com params {params_fin_del} ---") # Log D3
-        cur.execute(sql_fin_del, params_fin_del)
-        print(f"--- [API Odonto DELETE] Delete Financeiro executado (rowcount: {cur.rowcount}). ---") # Log D4
-
-        # Excluir tratamento principal
-        sql_trat_del = "DELETE FROM odontograma_tratamentos WHERE id = %s"
-        params_trat_del = (tratamento_id,)
-        print(f"--- [API Odonto DELETE] Executando SQL Delete Tratamento: {sql_trat_del} com params {params_trat_del} ---") # Log D5
-        cur.execute(sql_trat_del, params_trat_del)
-        trat_rowcount = cur.rowcount # Guarda o rowcount da exclusão principal
-        print(f"--- [API Odonto DELETE] Delete Tratamento executado (rowcount: {trat_rowcount}). ---") # Log D6
-
-        if trat_rowcount == 0:
-             print("--- [API Odonto DELETE] ERRO: Tratamento não encontrado para excluir. Realizando Rollback... ---") # Log D7
-             mysql.connection.rollback()
-             return jsonify({"erro": "Tratamento não encontrado"}), 404
-
-        # COMMIT
-        print("--- [API Odonto DELETE] Tentando realizar commit... ---") # Log D8
-        mysql.connection.commit()
-        print("--- [API Odonto DELETE] Commit realizado com sucesso. Retornando 204. ---") # Log D9
-        return '', 204 # Sucesso
-
+        sb.table('financeiro').delete().eq('tratamento_id', tratamento_id).execute()
+        sb.table('odontograma_tratamentos').delete().eq('id', tratamento_id).execute()
+        return '', 204
     except Exception as e:
-        print("\n" + "="*10 + f" !!! ERRO DURANTE DELETE !!! " + "="*10) # Log Erro D1
-        print(f"--- [API Odonto DELETE] Erro na transação: {e} ---") # Log Erro D2
-        traceback.print_exc() # Log Erro D3
-        if mysql.connection:
-            print("--- [API Odonto DELETE] Realizando Rollback... ---") # Log Erro D4
-            try:
-                mysql.connection.rollback()
-                print("--- [API Odonto DELETE] Rollback realizado. ---") # Log Erro D5
-            except Exception as rb_err:
-                print(f"--- [API Odonto DELETE] ERRO AO REALIZAR ROLLBACK: {rb_err} ---") # Log Erro D6
-        # Retorna JSON de erro, NÃO HTML
+        print(f"Erro Supabase durante exclusão do tratamento {tratamento_id}: {e}")
+        traceback.print_exc()
         return jsonify({"erro": f"Erro interno ao excluir: {str(e)}"}), 500
-    finally:
-        if cur:
-            cur.close()
-            print("--- [API Odonto DELETE] Cursor da transação fechado. ---") # Log Final D
 
-# PUT: Atualizar o status de um tratamento (NOVA ROTA)
 @app.route('/api/odontograma/tratamentos/<int:tratamento_id>/status', methods=['PUT'])
 def update_tratamento_status(tratamento_id):
     if not session.get('logado'):
         return jsonify({"erro": "Não autorizado"}), 401
-
-    cur = None
     try:
         dados = request.json
         if dados is None or 'concluido' not in dados:
             return jsonify({"erro": "Status 'concluido' (booleano) é obrigatório no corpo da requisição."}), 400
-
         novo_status = bool(dados.get('concluido'))
-
-        cur = mysql.connection.cursor()
-
-        # Verifica se o tratamento existe
-        cur.execute("SELECT id FROM odontograma_tratamentos WHERE id = %s", (tratamento_id,))
-        if not cur.fetchone():
-            return jsonify({"erro": "Tratamento não encontrado"}), 404
-
-        # Atualiza o status
-        cur.execute("""
-            UPDATE odontograma_tratamentos
-            SET concluido = %s
-            WHERE id = %s
-        """, (novo_status, tratamento_id))
-        mysql.connection.commit()
-
-        return jsonify({"id": tratamento_id, "concluido": novo_status, "mensagem": "Status do tratamento atualizado com sucesso!"}), 200
-
-    except Exception as e:
-        if mysql.connection: mysql.connection.rollback()
-        print(f"Erro API PUT /tratamentos/{tratamento_id}/status: {e}")
-        traceback.print_exc()
-        return jsonify({"erro": f"Erro interno ao atualizar status: {str(e)}"}), 500
-    finally:
-        if cur: cur.close()
-
-
-# --- Fim dos Endpoints da API ---
-
-# MOVIDO PARA CÁ!
-@app.route('/agendamentos', methods=['GET'])
-def agendamentos():
-    if not session.get('logado'): return redirect(url_for('login'))
-    filtro_paciente = request.args.get('paciente', '')
-    filtro_data = request.args.get('data', '')
-    filtro_status = request.args.get('status', '')
-
-    agendamentos_data = []
-    try:
         sb = get_supabase()
-        q = sb.table('agendamentos').select('id, servico, data, hora, status, observacoes, paciente_id')
-        if filtro_data:
-            q = q.eq('data', filtro_data)
-        if filtro_status:
-            q = q.eq('status', filtro_status)
-        # Filtro por nome do paciente: buscar IDs e aplicar filtro IN
-        paciente_ids = None
-        if filtro_paciente:
-            res_p = sb.table('pacientes').select('id').ilike('nome', f'%{filtro_paciente}%').execute()
-            ids = [r.get('id') for r in (getattr(res_p, 'data', None) or [])]
-            if ids:
-                paciente_ids = ids
-                q = q.in_('paciente_id', ids)
-            else:
-                # Nenhum paciente corresponde; retorna lista vazia
-                return render_template('agendamentos.html', agendamentos_lista=[], filtros=request.args)
-        # Ordenação
-        q = q.order('data', descending=True).order('hora', ascending=True)
-        res = q.execute()
-        rows = getattr(res, 'data', None) or []
-
-        # Montar mapa de nomes de pacientes
-        if paciente_ids is None:
-            paciente_ids = list({r.get('paciente_id') for r in rows if r.get('paciente_id') is not None})
-        pacientes_map = {}
-        if paciente_ids:
-            res_map = sb.table('pacientes').select('id, nome').in_('id', paciente_ids).execute()
-            for pr in (getattr(res_map, 'data', None) or []):
-                pacientes_map[pr.get('id')] = pr.get('nome')
-
-        # Formatar saída compatível com template
-        for r in rows:
-            data_val = r.get('data')
-            hora_val = r.get('hora')
-            # data_formatada
-            data_fmt = 'N/A'
-            try:
-                if isinstance(data_val, str) and len(data_val) >= 10:
-                    dt = datetime.datetime.strptime(data_val[:10], '%Y-%m-%d')
-                    data_fmt = dt.strftime('%d/%m/%Y')
-                elif hasattr(data_val, 'strftime'):
-                    data_fmt = data_val.strftime('%d/%m/%Y')
-            except Exception:
-                pass
-            # hora_formatada
-            hora_fmt = 'N/A'
-            if isinstance(hora_val, str) and len(hora_val) >= 5:
-                hora_fmt = hora_val[:5]
-            elif hasattr(hora_val, 'strftime'):
-                hora_fmt = hora_val.strftime('%H:%M')
-
-            agendamentos_data.append({
-                'id': r.get('id'),
-                'nome': pacientes_map.get(r.get('paciente_id'), 'N/A'),
-                'servico': r.get('servico'),
-                'data': data_val,
-                'data_formatada': data_fmt,
-                'hora_formatada': hora_fmt,
-                'status': r.get('status'),
-                'observacoes': r.get('observacoes'),
-                'paciente_id': r.get('paciente_id'),
-            })
-
+        sel = sb.table('odontograma_tratamentos').select('id').eq('id', tratamento_id).limit(1).execute()
+        if not (getattr(sel, 'data', None) or []):
+            return jsonify({"erro": "Tratamento não encontrado"}), 404
+        sb.table('odontograma_tratamentos').update({'concluido': novo_status}).eq('id', tratamento_id).execute()
+        return jsonify({"id": tratamento_id, "concluido": novo_status, "mensagem": "Status do tratamento atualizado com sucesso!"}), 200
     except Exception as e:
-        print(f"Erro ao buscar agendamentos (Supabase): {e}")
+        print(f"Erro ao atualizar status do tratamento {tratamento_id}: {e}")
         traceback.print_exc()
-        flash("Erro ao carregar lista de agendamentos.", "danger")
+        return jsonify({"erro": "Erro ao atualizar status do tratamento"}), 500
 
-    return render_template('agendamentos.html', agendamentos_lista=agendamentos_data, filtros=request.args)
-
-
-@app.route('/exportar_excel')
-def exportar_excel():
-    # Adicione verificação de login se necessário
-    if not session.get('logado'):
-        flash("Faça login para exportar.", "warning")
-        return redirect(url_for('login'))
-
-    cur = None
-    try:
-        cur = mysql.connection.cursor()
-        # Adapte a query para buscar os dados que você quer exportar
-        cur.execute("""
-            SELECT a.data, TIME_FORMAT(a.hora, '%H:%i'), a.status, a.servico, p.nome
-            FROM agendamentos a
-            JOIN pacientes p ON a.paciente_id = p.id
-            ORDER BY a.data, a.hora
-        """)
-        dados = cur.fetchall()
-
-        output = io.BytesIO()
-        workbook = xlsxwriter.Workbook(output, {'in_memory': True}) # Use in_memory
-        worksheet = workbook.add_worksheet()
-
-        # Cabeçalhos
-        headers = ['Data', 'Hora', 'Status', 'Serviço', 'Paciente']
-        for col, header in enumerate(headers):
-            worksheet.write(0, col, header)
-
-        # Dados
-        for row_idx, row in enumerate(dados, start=1):
-            for col_idx, valor in enumerate(row):
-                # Converte datas/horas para string se necessário
-                worksheet.write(row_idx, col_idx, str(valor))
-
-        workbook.close()
-        output.seek(0)
-
-        return send_file(output,
-                         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                         download_name='agendamentos.xlsx',
-                         as_attachment=True)
-    except Exception as e:
-        print(f"Erro ao exportar Excel: {e}")
-        traceback.print_exc()
-        flash("Erro ao gerar arquivo Excel.", "danger")
-        # Redireciona de volta para a página de onde veio (ex: agendamentos)
-        # Use request.referrer ou uma rota específica
-        return redirect(url_for('agendamentos')) # Ou outra rota apropriada
-    finally:
-        if cur:
-            cur.close()
-
-
-@app.route('/exportar_pdf')
-def exportar_pdf():
-    # Adicione verificação de login se necessário
-    if not session.get('logado'):
-        flash("Faça login para exportar.", "warning")
-        return redirect(url_for('login'))
-
-    cur = None
-    try:
-        cur = mysql.connection.cursor()
-        # Adapte a query para buscar os dados que você quer exportar
-        cur.execute("""
-            SELECT a.data, TIME_FORMAT(a.hora, '%H:%i'), a.status, a.servico, p.nome
-            FROM agendamentos a
-            JOIN pacientes p ON a.paciente_id = p.id
-            ORDER BY a.data, a.hora
-        """)
-        dados_db = cur.fetchall()
-
-        buffer = io.BytesIO()
-        # Cria o documento PDF
-        doc = SimpleDocTemplate(buffer, pagesize=letter,
-                                leftMargin=0.75*inch, rightMargin=0.75*inch,
-                                topMargin=1*inch, bottomMargin=1*inch)
-        styles = getSampleStyleSheet()
-        story = []
-
-        # Título
-        story.append(Paragraph("Relatório de Agendamentos", styles['h1']))
-        story.append(Spacer(1, 0.2*inch))
-
-        # Prepara dados para a tabela
-        # Cabeçalho
-        header = ['Data', 'Hora', 'Status', 'Serviço', 'Paciente']
-        # Converte dados do banco para lista de listas de strings
-        data_table = [header] + [[str(item) for item in row] for row in dados_db]
-
-        # Cria a tabela
-        table = Table(data_table, colWidths=[1.2*inch, 0.8*inch, 1*inch, 2.5*inch, 2*inch]) # Ajuste as larguras
-
-        # Estilo da tabela
-        style = TableStyle([
-            ('BACKGROUND', (0,0), (-1,0), colors.grey),
-            ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
-            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-            ('BOTTOMPADDING', (0,0), (-1,0), 12),
-            ('BACKGROUND', (0,1), (-1,-1), colors.beige),
-            ('GRID', (0,0), (-1,-1), 1, colors.black),
-            ('FONTNAME', (0,1), (-1,-1), 'Helvetica'),
-            ('ALIGN', (4,1), (4,-1), 'LEFT'), # Alinha nome do paciente à esquerda
-        ])
-        table.setStyle(style)
-
-        story.append(table)
-        doc.build(story) # Constrói o PDF
-
-        buffer.seek(0)
-        return send_file(buffer,
-                         mimetype='application/pdf',
-                         download_name='agendamentos.pdf',
-                         as_attachment=True)
-    except Exception as e:
-        print(f"Erro ao exportar PDF: {e}")
-        traceback.print_exc()
-        flash("Erro ao gerar arquivo PDF.", "danger")
-        # Redireciona de volta para a página de onde veio
-        return redirect(url_for('agendamentos')) # Ou outra rota apropriada
-    finally:
-        if cur:
-            cur.close()
-
-# --- Rota para Detalhes do Paciente ---
 @app.route('/paciente/<int:paciente_id>')
 def detalhes_paciente(paciente_id):
-    print(f"\n--- [Detalhes Paciente {paciente_id}] Iniciando Rota ---")
     if not session.get('logado'):
-        print(f"--- [Detalhes Paciente {paciente_id}] ERRO: Não logado ---")
         return redirect(url_for('login'))
 
-    cur = None
+    sb = get_supabase()
     try:
-        print(f"--- [Detalhes Paciente {paciente_id}] Abrindo cursor BD ---")
-        cur = mysql.connection.cursor()
-        print(f"--- [Detalhes Paciente {paciente_id}] Tipo do cursor: {type(cur)} ---")
+        pres = sb.table('pacientes').select('*').eq('id', paciente_id).limit(1).execute()
+        prows = getattr(pres, 'data', None) or []
+        if not prows:
+            flash('Paciente não encontrado.', 'danger')
+            return redirect(url_for('pacientes'))
+        paciente_fmt = format_for_json(prows[0])
 
-        # 1. Buscar paciente e converter para dict
-        print(f"--- [Detalhes Paciente {paciente_id}] Buscando dados do paciente... ---")
-        sql_paciente = "SELECT * FROM pacientes WHERE id = %s"
-        cur.execute(sql_paciente, (paciente_id,))
-        paciente_tuple = cur.fetchone()
-        print(f"--- [Detalhes Paciente {paciente_id}] Tipo retornado por fetchone: {type(paciente_tuple)} ---")
-        if not paciente_tuple:
-            print(f"--- [Detalhes Paciente {paciente_id}] ERRO: Paciente não encontrado ---")
-            flash('Paciente não encontrado.', 'danger'); return redirect(url_for('pacientes'))
-        paciente_cols = [col[0] for col in cur.description]
-        paciente = dict(zip(paciente_cols, paciente_tuple))
-        print(f"--- [Detalhes Paciente {paciente_id}] Paciente encontrado: {paciente.get('nome')}. Formatando... ---")
-        paciente_fmt = format_for_json(paciente.copy())
-        print(f"--- [Detalhes Paciente {paciente_id}] Paciente formatado. ---")
+        tres = sb.table('odontograma_tratamentos') \
+            .select('id, dente_numero, tipo_tratamento, data_tratamento, observacoes, valor, concluido, proxima_sessao') \
+            .eq('paciente_id', paciente_id) \
+            .order('data_tratamento', ascending=False) \
+            .order('data_criacao', ascending=False) \
+            .execute()
+        tratamentos_raw = getattr(tres, 'data', None) or []
+        tratamentos = format_for_json(tratamentos_raw)
 
-        # 2. Buscar tratamentos e converter para lista de dicts
-        print(f"--- [Detalhes Paciente {paciente_id}] Buscando tratamentos... ---")
-        sql_tratamentos = """
-            SELECT id, dente_numero, tipo_tratamento, data_tratamento, observacoes, valor, concluido
-            FROM odontograma_tratamentos WHERE paciente_id = %s
-            ORDER BY data_tratamento DESC -- , data_criacao DESC -- Verifique se data_criacao existe
-        """
-        cur.execute(sql_tratamentos, (paciente_id,))
-        tratamentos_cols = [col[0] for col in cur.description] # Pega nomes das colunas
-        tratamentos_tuples = cur.fetchall() # Pega tuplas
-        # Converte lista de tuplas para lista de dicionários
-        tratamentos_raw_dicts = [dict(zip(tratamentos_cols, row)) for row in tratamentos_tuples]
-        print(f"--- [Detalhes Paciente {paciente_id}] {len(tratamentos_raw_dicts)} tratamentos encontrados. Formatando... ---")
-        tratamentos = format_for_json(tratamentos_raw_dicts) # Formata a lista de dicionários
-        print(f"--- [Detalhes Paciente {paciente_id}] Tratamentos formatados. ---")
+        fres = sb.table('financeiro') \
+            .select('id, descricao, valor, status, data_vencimento, data_pagamento, tratamento_id') \
+            .eq('paciente_id', paciente_id) \
+            .order('data_vencimento', ascending=False) \
+            .execute()
+        financeiro_raw = getattr(fres, 'data', None) or []
+        financeiro_lista = format_for_json(financeiro_raw)
 
-        # 3. Buscar financeiro e converter para lista de dicts
-        print(f"--- [Detalhes Paciente {paciente_id}] Buscando financeiro... ---")
-        sql_financeiro = """
-            SELECT id, descricao, valor, status, data_vencimento, data_pagamento, tratamento_id
-            FROM financeiro WHERE paciente_id = %s ORDER BY data_vencimento DESC
-        """
-        cur.execute(sql_financeiro, (paciente_id,))
-        financeiro_cols = [col[0] for col in cur.description] # Pega nomes das colunas
-        financeiro_tuples = cur.fetchall() # Pega tuplas
-        # Converte lista de tuplas para lista de dicionários
-        financeiro_raw_dicts = [dict(zip(financeiro_cols, row)) for row in financeiro_tuples]
-        print(f"--- [Detalhes Paciente {paciente_id}] {len(financeiro_raw_dicts)} lançamentos financeiros encontrados. Formatando... ---")
-        financeiro_lista = format_for_json(financeiro_raw_dicts) # Formata a lista de dicionários
-        print(f"--- [Detalhes Paciente {paciente_id}] Financeiro formatado. ---")
+        hoje = date.today().isoformat()
+        ares = sb.table('agendamentos') \
+            .select('id, servico, data, hora, status') \
+            .eq('paciente_id', paciente_id) \
+            .gte('data', hoje) \
+            .order('data', ascending=True) \
+            .order('hora', ascending=True) \
+            .execute()
+        ag_raw = getattr(ares, 'data', None) or []
+        agendamentos_futuros = []
+        for a in ag_raw:
+            hora_raw = a.get('hora')
+            a['hora_f'] = (hora_raw or '')[:5]
+            agendamentos_futuros.append(a)
+        agendamentos_futuros = format_for_json(agendamentos_futuros)
 
-        # 4. Buscar agendamentos futuros e converter para lista de dicts
-        print(f"--- [Detalhes Paciente {paciente_id}] Buscando agendamentos futuros... ---")
-        sql_agendamentos = """
-            SELECT id, servico, data, TIME_FORMAT(hora, '%%H:%%i') as hora_f, status
-            FROM agendamentos WHERE paciente_id = %s AND data >= CURDATE()
-            ORDER BY data ASC, hora ASC
-        """
-        cur.execute(sql_agendamentos, (paciente_id,))
-        agendamentos_cols = [col[0] for col in cur.description] # Pega nomes das colunas
-        agendamentos_tuples = cur.fetchall() # Pega tuplas
-        # Converte lista de tuplas para lista de dicionários
-        agendamentos_raw_dicts = [dict(zip(agendamentos_cols, row)) for row in agendamentos_tuples]
-        print(f"--- [Detalhes Paciente {paciente_id}] {len(agendamentos_raw_dicts)} agendamentos futuros encontrados. Formatando... ---")
-        agendamentos_futuros = format_for_json(agendamentos_raw_dicts) # Formata a lista de dicionários
-        print(f"--- [Detalhes Paciente {paciente_id}] Agendamentos futuros formatados. ---")
-
-        # LOG CRUCIAL: Imprime a estrutura final de 'tratamentos'
-        print(f"--- [Detalhes Paciente {paciente_id}] DADOS FINAIS PARA TEMPLATE ---")
-        print("Paciente:", paciente_fmt)
-        print("Tratamentos:", tratamentos) # <<< VERIFIQUE A SAÍDA DESTE PRINT
-        print("Financeiro:", financeiro_lista)
-        print("Agendamentos:", agendamentos_futuros)
-        print(f"--- [Detalhes Paciente {paciente_id}] Renderizando template... ---") # Log 15
-
-        return render_template('detalhes_paciente.html', paciente=paciente_fmt, tratamentos=tratamentos,
-                               financeiro_lista=financeiro_lista, agendamentos_futuros=agendamentos_futuros)
-
+        return render_template('detalhes_paciente.html',
+                               paciente=paciente_fmt,
+                               tratamentos=tratamentos,
+                               financeiro_lista=financeiro_lista,
+                               agendamentos_futuros=agendamentos_futuros)
     except Exception as e:
-        # Log detalhado do erro
-        print("\n" + "="*10 + f" !!! ERRO ROTA /paciente/{paciente_id} !!! " + "="*10)
-        print(f"--- [Detalhes Paciente {paciente_id}] Exceção capturada: {e} ---")
+        print(f"Erro ao carregar detalhes do paciente {paciente_id}: {e}")
         traceback.print_exc()
-        print("="*30)
         flash('Erro ao carregar detalhes do paciente.', 'danger')
         return redirect(url_for('pacientes'))
-    finally:
-        if cur:
-            cur.close()
-            print(f"--- [Detalhes Paciente {paciente_id}] Cursor fechado. ---")
-
-
-
-
-
-
-# ... (outras rotas)
 
 @app.route('/editar_agendamento/<int:id>', methods=['GET', 'POST'])
 def editar_agendamento(id):
@@ -1554,46 +1318,31 @@ def editar_agendamento(id):
 @app.route('/agendamento/<int:id>/status', methods=['POST'])
 def atualizar_status_agendamento(id):
     if not session.get('logado'):
-        # Poderia retornar um erro JSON se chamado por JS, mas aqui redireciona
         flash("Acesso não autorizado.", "danger")
         return redirect(url_for('login'))
 
-    novo_status = request.form.get('novo_status') # Espera 'novo_status' do formulário
-    status_validos = ['Agendado', 'Confirmado', 'Realizado', 'Cancelado', 'Não Compareceu'] # Lista de status permitidos
+    novo_status = request.form.get('novo_status')
+    status_validos = ['Agendado', 'Confirmado', 'Realizado', 'Cancelado', 'Não Compareceu']
 
     if not novo_status or novo_status not in status_validos:
         flash("Status inválido fornecido.", "warning")
-        return redirect(request.referrer or url_for('agendamentos')) # Volta para onde veio
+        return redirect(request.referrer or url_for('agendamentos'))
 
-    cur = None
+    sb = get_supabase()
     try:
-        cur = mysql.connection.cursor()
-        # Verifica se agendamento existe antes de atualizar
-        cur.execute("SELECT id FROM agendamentos WHERE id = %s", (id,))
-        if not cur.fetchone():
+        sel = sb.table('agendamentos').select('id').eq('id', id).limit(1).execute()
+        if not (getattr(sel, 'data', None) or []):
             flash("Agendamento não encontrado.", "danger")
             return redirect(url_for('agendamentos'))
 
-        # Atualiza o status
-        cur.execute("UPDATE agendamentos SET status = %s WHERE id = %s", (novo_status, id))
-        mysql.connection.commit()
+        sb.table('agendamentos').update({'status': novo_status}).eq('id', id).execute()
         flash(f"Status do agendamento atualizado para '{novo_status}'.", "success")
-
     except Exception as e:
-        if mysql.connection: mysql.connection.rollback()
         print(f"Erro ao atualizar status do agendamento {id}: {e}")
         traceback.print_exc()
         flash("Erro ao atualizar status do agendamento.", "danger")
-    finally:
-        if cur:
-            cur.close()
 
-    return redirect(request.referrer or url_for('agendamentos')) # Volta para a página anterior
-
-# --- Fim das rotas de status ---
-
-
-# --- ROTAS DO PORTAL DO PACIENTE ---
+    return redirect(request.referrer or url_for('agendamentos'))
 
 @app.route('/portal/login', methods=['GET', 'POST'])
 def portal_login():

@@ -61,7 +61,11 @@
                         </a>
                     </td>
                     <td>{{ agendamento.servico }}</td>
-                    <td>{{ agendamento.data_formatada }}</td>
+                    <td>
+                        {{ agendamento.data_formatada }}
+                        {% if agendamento.e_hoje %}<span class="badge text-bg-success ms-2" title="Agendamento para hoje">Hoje</span>{% endif %}
+                        {% if agendamento.e_amanha %}<span class="badge text-bg-secondary ms-1" title="Agendamento para amanhã">Amanhã</span>{% endif %}
+                    </td>
                     <td>{{ agendamento.hora_formatada | default('N/A') }}</td> {# Adicionado default #}
                     <td>
                         {# Badge de Status #}
@@ -84,7 +88,27 @@
 
                     {# ***** COLUNA DE AÇÕES CORRIGIDA ***** #}
                     <td>
-                        <div class="dropdown">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="btn-group btn-group-sm" role="group">
+                                {% if agendamento.status == 'Agendado' %}
+                                    <form action="{{ url_for('atualizar_status_agendamento', id=agendamento.id) }}" method="POST" class="d-inline">
+                                        <input type="hidden" name="novo_status" value="Confirmado">
+                                        <button type="submit" class="btn btn-outline-primary" title="Confirmar">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                    </form>
+                                {% endif %}
+                                {% if agendamento.status != 'Cancelado' and agendamento.status != 'Realizado' %}
+                                    <form action="{{ url_for('atualizar_status_agendamento', id=agendamento.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Tem certeza que deseja cancelar este agendamento?');">
+                                        <input type="hidden" name="novo_status" value="Cancelado">
+                                        <button type="submit" class="btn btn-outline-danger" title="Cancelar">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </div>
+
+                            <div class="dropdown">
                             <button class="btn btn-secondary btn-sm dropdown-toggle" type="button" id="dropdownMenuButton-{{ agendamento.id }}" data-bs-toggle="dropdown" aria-expanded="false">
                                 Ações
                             </button>
@@ -161,8 +185,9 @@
                                 {% endif %}
                             </ul>
                         </div>
-                    </td>
-                    {# ***** FIM DA COLUNA DE AÇÕES CORRIGIDA ***** #}
+                    </div>
+                </td>
+                {# ***** FIM DA COLUNA DE AÇÕES CORRIGIDA ***** #}
 
                 </tr>
                 {% else %}

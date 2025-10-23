@@ -174,6 +174,9 @@ document.addEventListener('DOMContentLoaded', function() {
     let chartStatusInstance = null; // Guarda a instância do gráfico de status
     let chartValoresInstance = null; // Guarda a instância do gráfico de valores
     let financeiroModal = null; // Instância do Modal Bootstrap
+    // Novo: parâmetro de paciente vindo da URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const pacienteIdParam = urlParams.get('paciente_id');
 
     // --- Inicialização do Modal ---
     if (modalElement) {
@@ -223,19 +226,21 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- Carregamento de Dados ---
     async function carregarPacientesParaSelect() {
         try {
-            // Assumindo que você tem uma API para listar pacientes
-            const response = await fetch('/api/pacientes/listar'); // AJUSTE A URL DA SUA API
+            const response = await fetch('/api/pacientes/listar');
             if (!response.ok) throw new Error('Erro ao buscar pacientes');
             const pacientes = await response.json();
 
-            pacienteSelect.innerHTML = '<option value="" selected disabled>Selecione...</option>'; // Limpa e adiciona placeholder
+            pacienteSelect.innerHTML = '<option value="" selected disabled>Selecione...</option>';
             pacientes.forEach(paciente => {
-                // Assumindo que a API retorna { id: 1, nome: 'Nome Paciente' }
                 const option = document.createElement('option');
                 option.value = paciente.id;
                 option.textContent = paciente.nome;
                 pacienteSelect.appendChild(option);
             });
+            // Seleciona paciente se vier na URL
+            if (pacienteIdParam) {
+                pacienteSelect.value = pacienteIdParam;
+            }
         } catch (error) {
             console.error("Erro ao carregar pacientes:", error);
             pacienteSelect.innerHTML = '<option value="" disabled>Erro ao carregar</option>';
@@ -249,24 +254,35 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         tabelaBody.innerHTML = `<tr><td colspan="7" class="text-center">Carregando...</td></tr>`;
         try {
-            // **IMPORTANTE: Crie esta rota na sua API Flask/Django**
-            const response = await fetch('/api/financeiro/lancamentos'); // Rota para buscar TODOS os lançamentos
+            // Monta a URL com filtro por paciente se existir
+            let url = '/api/financeiro/lancamentos';
+            if (pacienteIdParam) {
+                url += `?paciente_id=${encodeURIComponent(pacienteIdParam)}`;
+            }
+            const response = await fetch(url);
             if (!response.ok) throw new Error(`Erro HTTP: ${response.status}`);
             todosLancamentos = await response.json();
             console.log("Lançamentos recebidos:", todosLancamentos);
 
-            // Ordena (opcional, ex: por data de vencimento mais recente)
-            todosLancamentos.sort((a, b) => new Date(b.data_vencimento) - new Date(a.data_vencimento));
+            // Ordena priorizando atrasados e depois por vencimento mais recente
+            const hojeStr = new Date().toISOString().split('T')[0];
+            const toDateOnly = (s) => s ? new Date(`${s}T00:00:00`) : new Date('1970-01-01T00:00:00');
+            const isOverdue = (l) => (l.status !== 'pago') && l.data_vencimento && (toDateOnly(l.data_vencimento) < toDateOnly(hojeStr));
+            todosLancamentos.sort((a, b) => {
+                const od = Number(isOverdue(b)) - Number(isOverdue(a));
+                if (od !== 0) return od;
+                return toDateOnly(b.data_vencimento) - toDateOnly(a.data_vencimento);
+            });
 
-            renderizarTabela(todosLancamentos); // Renderiza a tabela com os dados
-            renderizarGraficos(todosLancamentos); // Renderiza os gráficos
-            await carregarPacientesParaSelect(); // Carrega pacientes para o modal
+            renderizarTabela(todosLancamentos);
+            renderizarGraficos(todosLancamentos);
+            await carregarPacientesParaSelect();
 
         } catch (error) {
             console.error("Erro ao carregar lançamentos:", error);
             tabelaBody.innerHTML = `<tr><td colspan="7" class="text-center text-danger">Erro ao carregar dados: ${error.message}</td></tr>`;
-            todosLancamentos = []; // Limpa dados em caso de erro
-            renderizarGraficos([]); // Limpa gráficos
+            todosLancamentos = [];
+            renderizarGraficos([]);
         }
     }
 
@@ -282,11 +298,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
         lancamentos.forEach(lanc => {
             const tr = document.createElement('tr');
-            tr.dataset.id = lanc.id; // Adiciona ID para referência futura
+            tr.dataset.id = lanc.id;
             const isPago = lanc.status === 'pago';
+            const hojeStr = new Date().toISOString().split('T')[0];
+            const toDateOnly = (s) => s ? new Date(`${s}T00:00:00`) : null;
+            const isAtrasado = !isPago && lanc.data_vencimento && toDateOnly(lanc.data_vencimento) < toDateOnly(hojeStr);
+            if (isAtrasado) {
+                tr.classList.add('table-danger');
+            }
 
             tr.innerHTML = `
-                <td>${lanc.paciente_nome || 'N/A'}</td> {# Assumindo que a API retorna paciente_nome #}
+                <td>${lanc.paciente_nome || 'N/A'}</td>
                 <td>${lanc.descricao || '-'}</td>
                 <td>${formatCurrency(lanc.valor)}</td>
                 <td>${formatDate(lanc.data_vencimento)}</td>
@@ -296,12 +318,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         <i class="fas fa-${isPago ? 'check' : 'hourglass-half'} me-1"></i>
                         ${isPago ? 'Pago' : 'Pendente'}
                     </span>
+                    ${isAtrasado ? '<span class="badge bg-danger ms-1">Vencido</span>' : ''}
                 </td>
                 <td>
                     <button class="btn btn-sm btn-info edit-btn" title="Editar Lançamento">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="btn btn-sm btn-${isPago ? 'secondary' : 'success'} toggle-pay-btn" title="${isPago ? 'Marcar como Pendente' : 'Marcar como Pago'}">
+                    <button class="btn btn-sm btn-${isPago ? 'secondary' : 'success'} toggle-pay-btn" title="${isPago ? 'Reabrir' : 'Quitar'}">
                         <i class="fas fa-${isPago ? 'undo' : 'check'}"></i>
                     </button>
                     <button class="btn btn-sm btn-danger delete-btn" title="Excluir Lançamento">
