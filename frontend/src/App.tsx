@@ -31,72 +31,70 @@ import Cadastro from './pages/Cadastro'
 import CadastroBasico from './pages/CadastroBasico'
 import CadastroProfissional from './pages/CadastroProfissional'
 import CheckoutRetorno from './pages/CheckoutRetorno'
-+ import CadastroTeste from './pages/CadastroTeste'
-+ import Upgrade from './pages/Upgrade'
-+ import TrialGate from './components/TrialGate'
-// Remover import do App.css
+import CadastroTeste from './pages/CadastroTeste'
+import Upgrade from './pages/Upgrade'
+import TrialGate from './components/TrialGate'
 
 function App() {
--  return (
--    <Routes>
-+  return (
-+    <>
-+      <TrialGate />
-+      <Routes>
-      {/* Rotas públicas (sem Layout) */}
-      <Route path="/" element={<Login />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/portal/login" element={<PortalLogin />} />
-  
-      {/* Rotas da aplicação (com Layout) */}
-      <Route path="/dashboard" element={<RequireAuth><Layout><Dashboard /></Layout></RequireAuth>} />
-      {/* Pacientes */}
-      <Route path="/pacientes" element={<RequireAuth><Layout><Pacientes /></Layout></RequireAuth>} />
-      <Route path="/pacientes/cadastrar" element={<RequireAuth><Layout><CadastrarPaciente /></Layout></RequireAuth>} />
-      <Route path="/pacientes/:id/editar" element={<RequireAuth><Layout><EditarPaciente /></Layout></RequireAuth>} />
-      <Route path="/pacientes/:id/detalhes" element={<RequireAuth><Layout><DetalhesPaciente /></Layout></RequireAuth>} />
-      <Route path="/pacientes/:id/documentos" element={<RequireAuth><Layout><DocumentosPaciente /></Layout></RequireAuth>} />
-      <Route path="/odontograma/:pacienteId" element={<RequireAuth><Layout><Odontograma /></Layout></RequireAuth>} />
-  
-      {/* Agendamentos */}
-      <Route path="/agendamentos" element={<RequireAuth><Layout><Agendamentos /></Layout></RequireAuth>} />
-      <Route path="/agendamentos/cadastrar" element={<RequireAuth><Layout><CadastrarAgendamento /></Layout></RequireAuth>} />
-      <Route path="/agendamentos/:id/editar" element={<RequireAuth><Layout><EditarAgendamento /></Layout></RequireAuth>} />
-      <Route path="/agendamentos/dia" element={<RequireAuth><Layout><AgendamentosDia /></Layout></RequireAuth>} />
-  
-      {/* Financeiro */}
-      <Route path="/financeiro" element={<RequireAuth><Layout><Financeiro /></Layout></RequireAuth>} />
-      {/* Orçamentos */}
-      <Route path="/orcamentos" element={<RequireAuth><Layout><Orcamentos /></Layout></RequireAuth>} />
-      <Route path="/orcamentos/cadastrar" element={<RequireAuth><Layout><CadastrarOrcamento /></Layout></RequireAuth>} />
-      <Route path="/orcamentos/:id" element={<RequireAuth><Layout><VisualizarOrcamento /></Layout></RequireAuth>} />
-      <Route path="/orcamentos/:id/editar" element={<RequireAuth><Layout><EditarOrcamento /></Layout></RequireAuth>} />
-      <Route path="/orcamentos/:id/imprimir" element={<RequireAuth><Layout><ImprimirOrcamento /></Layout></RequireAuth>} />
+  return (
+    <>
+      <TrialGate />
+      <Routes>
+        {/* Rotas públicas (sem Layout) */}
+        <Route path="/" element={<Login />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/portal/login" element={<PortalLogin />} />
 
-      {/* Configurações */}
-      <Route path="/configuracoes" element={<RequireAuth><Layout><Configuracoes /></Layout></RequireAuth>} />
+        {/* Rotas da aplicação (com Layout) */}
+        <Route path="/dashboard" element={<RequireAuth><Layout><Dashboard /></Layout></RequireAuth>} />
+        {/* Pacientes */}
+        <Route path="/pacientes" element={<RequireAuth><Layout><Pacientes /></Layout></RequireAuth>} />
+        <Route path="/pacientes/cadastrar" element={<RequireAuth><Layout><CadastrarPaciente /></Layout></RequireAuth>} />
+        <Route path="/pacientes/:id/editar" element={<RequireAuth><Layout><EditarPaciente /></Layout></RequireAuth>} />
+        <Route path="/pacientes/:id/detalhes" element={<RequireAuth><Layout><DetalhesPaciente /></Layout></RequireAuth>} />
+        <Route path="/pacientes/:id/documentos" element={<RequireAuth><Layout><DocumentosPaciente /></Layout></RequireAuth>} />
+        <Route path="/odontograma/:pacienteId" element={<RequireAuth><Layout><Odontograma /></Layout></RequireAuth>} />
 
-      {/* Consulta do Paciente */}
-      <Route path="/consulta/:id" element={<RequireAuth><Layout><ConsultaPaciente /></Layout></RequireAuth>} />
-      {/* Importar Dados */}
-      <Route path="/importar" element={<RequireAuth><Layout><ImportarDados /></Layout></RequireAuth>} />
-      {/* Exportar */}
-      <Route path="/exportar" element={<RequireAuth><Layout><Exportar /></Layout></RequireAuth>} />
-      {/* Relatórios */}
-      <Route path="/relatorios" element={<RequireAuth><Layout><Relatorios /></Layout></RequireAuth>} />
-      {/* Portal do Paciente */}
-      <Route path="/portal/home" element={<RequirePortal><Layout><PortalHome /></Layout></RequirePortal>} />
-      <Route path="/cadastro" element={<Cadastro />} />
-      <Route path="/cadastro/teste" element={<CadastroTeste />} />
-       <Route path="/cadastro/basico" element={<CadastroBasico />} />
-       <Route path="/cadastro/profissional" element={<CadastroProfissional />} />
-+      <Route path="/upgrade" element={<Upgrade />} />
-       <Route path="/cadastro/retorno" element={<CheckoutRetorno />} />
--    </Routes>
-+      </Routes>
-+    </>
-   )
+        {/* Agendamentos */}
+        <Route path="/agendamentos" element={<RequireAuth><Layout><Agendamentos /></Layout></RequireAuth>} />
+        <Route path="/agendamentos/cadastrar" element={<RequireAuth><Layout><CadastrarAgendamento /></Layout></RequireAuth>} />
+        <Route path="/agendamentos/:id/editar" element={<RequireAuth><Layout><EditarAgendamento /></Layout></RequireAuth>} />
+        <Route path="/agendamentos/dia" element={<RequireAuth><Layout><AgendamentosDia /></Layout></RequireAuth>} />
+
+        {/* Financeiro */}
+        <Route path="/financeiro" element={<RequireAuth><Layout><Financeiro /></Layout></RequireAuth>} />
+        {/* Orçamentos */}
+        <Route path="/orcamentos" element={<RequireAuth><Layout><Orcamentos /></Layout></RequireAuth>} />
+        <Route path="/orcamentos/cadastrar" element={<RequireAuth><Layout><CadastrarOrcamento /></Layout></RequireAuth>} />
+        <Route path="/orcamentos/:id" element={<RequireAuth><Layout><VisualizarOrcamento /></Layout></RequireAuth>} />
+        <Route path="/orcamentos/:id/editar" element={<RequireAuth><Layout><EditarOrcamento /></Layout></RequireAuth>} />
+        <Route path="/orcamentos/:id/imprimir" element={<RequireAuth><Layout><ImprimirOrcamento /></Layout></RequireAuth>} />
+
+        {/* Configurações */}
+        <Route path="/configuracoes" element={<RequireAuth><Layout><Configuracoes /></Layout></RequireAuth>} />
+
+        {/* Consulta do Paciente */}
+        <Route path="/consulta/:id" element={<RequireAuth><Layout><ConsultaPaciente /></Layout></RequireAuth>} />
+        {/* Importar Dados */}
+        <Route path="/importar" element={<RequireAuth><Layout><ImportarDados /></Layout></RequireAuth>} />
+        {/* Exportar */}
+        <Route path="/exportar" element={<RequireAuth><Layout><Exportar /></Layout></RequireAuth>} />
+        {/* Relatórios */}
+        <Route path="/relatorios" element={<RequireAuth><Layout><Relatorios /></Layout></RequireAuth>} />
+        {/* Portal do Paciente */}
+        <Route path="/portal/home" element={<RequirePortal><Layout><PortalHome /></Layout></RequirePortal>} />
+
+        {/* Páginas públicas de cadastro */}
+        <Route path="/cadastro" element={<Cadastro />} />
+        <Route path="/cadastro/teste" element={<CadastroTeste />} />
+        <Route path="/cadastro/basico" element={<CadastroBasico />} />
+        <Route path="/cadastro/profissional" element={<CadastroProfissional />} />
+        <Route path="/upgrade" element={<Upgrade />} />
+        <Route path="/cadastro/retorno" element={<CheckoutRetorno />} />
+      </Routes>
+    </>
+  )
 }
 
 export default App
