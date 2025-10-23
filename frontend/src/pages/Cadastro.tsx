@@ -107,8 +107,7 @@ export default function Cadastro() {
       <header className="glass-nav">
         <div className="container d-flex align-items-center justify-content-between py-2">
           <Link to="/" className="d-flex align-items-center text-decoration-none">
-            <i className="fas fa-tooth text-primary me-2 fa-lg"></i>
-            <span className="fw-semibold text-dark fs-5">Sisdental</span>
+            <img src="/logo-sisdental.png" alt="Sisdental Odonto" height={28} />
           </Link>
           <nav className="d-none d-md-flex align-items-center gap-3">
             <a href="#planos" className="text-decoration-none text-dark">Planos</a>
@@ -128,7 +127,7 @@ export default function Cadastro() {
               <h1 className="display-5 fw-bold mb-3">Sisdental</h1>
               <p className="lead mb-4">Simplifique a gestão da sua clínica: agenda, pacientes, financeiro e comunicação no mesmo lugar.</p>
               <div className="d-flex gap-2 flex-wrap">
-                <Link to="/cadastro#planos" className="btn btn-light text-primary fw-semibold btn-lift">Ver Planos</Link>
+                <a href="#planos" className="btn btn-light text-primary fw-semibold btn-lift">Ver Planos</a>
                 <Link to="/login" className="btn btn-outline-light btn-lift">Entrar</Link>
               </div>
               <div className="trust-badges mt-3">
@@ -140,7 +139,7 @@ export default function Cadastro() {
             <div className="col-lg-6 d-none d-lg-block">
               <div className="text-center">
                 <img
-                  src="/dashboard-hero.svg"
+                  src="/dashboard.png"
                   alt="Print do painel Sisdental"
                   className="img-fluid rounded-4 shadow-sm"
                   style={{ maxHeight: 420, objectFit: 'cover' }}
@@ -198,7 +197,7 @@ export default function Cadastro() {
           <div className="row g-4 mb-5">
             <div className="col-md-4">
               <div className="card h-100 shadow-sm border-0 rounded-4 card-hover overflow-hidden">
-                <img src="/card-agenda.svg" alt="Agenda inteligente" className="card-img-top" loading="lazy" style={{ height: 160, objectFit: 'cover' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/vite.svg' }} />
+                <img src="/agendamento.png" alt="Agenda inteligente" className="card-img-top feature-img" loading="lazy" style={{ height: 160, objectFit: 'cover' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/vite.svg' }} />
                 <div className="card-body">
                   <h5 className="card-title">Agenda inteligente</h5>
                   <p className="text-muted mb-0">Confirmações automáticas e visão diária/mensal para reduzir faltas.</p>
@@ -207,7 +206,7 @@ export default function Cadastro() {
             </div>
             <div className="col-md-4">
               <div className="card h-100 shadow-sm border-0 rounded-4 card-hover overflow-hidden">
-                <img src="/card-prontuario.svg" alt="Prontuário completo" className="card-img-top" loading="lazy" style={{ height: 160, objectFit: 'cover' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/vite.svg' }} />
+                <img src="/prontuario.png" alt="Prontuário completo" className="card-img-top feature-img" loading="lazy" style={{ height: 160, objectFit: 'cover' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/vite.svg' }} />
                 <div className="card-body">
                   <h5 className="card-title">Prontuário completo</h5>
                   <p className="text-muted mb-0">Histórico clínico centralizado e odontograma para melhor acompanhamento.</p>
@@ -216,7 +215,7 @@ export default function Cadastro() {
             </div>
             <div className="col-md-4">
               <div className="card h-100 shadow-sm border-0 rounded-4 card-hover overflow-hidden">
-                <img src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=1200&auto=format&fit=crop" alt="Financeiro claro" className="card-img-top" loading="lazy" style={{ height: 160, objectFit: 'cover' }} />
+                <img src="/financeiro.png" alt="Financeiro claro" className="card-img-top feature-img" loading="lazy" style={{ height: 160, objectFit: 'cover' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/vite.svg' }} />
                 <div className="card-body">
                   <h5 className="card-title">Financeiro claro</h5>
                   <p className="text-muted mb-0">Fluxo de caixa, relatórios e organização para decisões com dados.</p>
@@ -251,17 +250,6 @@ export default function Cadastro() {
               </div>
             </div>
           </div>
-
-          <div className="text-center mb-3">
-            <Link to="/cadastro#planos" className="btn btn-outline-primary btn-lg btn-lift">Ver Planos</Link>
-          </div>
-          <div className="d-flex justify-content-center">
-              <div className="trust-badges">
-                <span className="badge bg-white border text-dark"><i className="fas fa-rotate-left text-success me-1"></i> Garantia 7 dias</span>
-                <span className="badge bg-white border text-dark"><i className="fas fa-ban text-primary me-1"></i> Sem fidelidade</span>
-                <span className="badge bg-white border text-dark"><i className="fas fa-lock text-success me-1"></i> Pagamento seguro</span>
-              </div>
-            </div>
 
           <div id="planos" className="">
             <div className="text-center mb-4">
@@ -459,8 +447,7 @@ export default function Cadastro() {
         <div className="row g-3 align-items-center">
           <div className="col-md-4">
             <div className="d-flex align-items-center gap-2">
-              <i className="fas fa-tooth text-primary"></i>
-              <strong className="mb-0">Sisdental</strong>
+              <img src="/logo-sisdental.png" alt="Sisdental Odonto" height={120} />
             </div>
             <div className="small text-white-50 mt-2">© {new Date().getFullYear()} Sisdental — Todos os direitos reservados.</div>
             <div className="d-flex gap-2 mt-3">

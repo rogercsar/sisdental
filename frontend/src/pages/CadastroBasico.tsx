@@ -108,12 +108,11 @@ export default function CadastroBasico() {
   }
 
   return (
-    <div className="container py-5 pt-nav">
+    <div className="d-flex flex-column min-vh-100 pt-nav">
       <header className="glass-nav mb-4">
         <div className="container d-flex align-items-center justify-content-between py-2">
           <Link to="/" className="d-flex align-items-center text-decoration-none">
-            <i className="fas fa-tooth text-primary me-2 fa-lg"></i>
-            <span className="fw-semibold text-dark fs-5">Sisdental</span>
+            <img src="/logo-sisdental.png" alt="Sisdental Odonto" height={28} />
           </Link>
           <nav className="d-none d-md-flex align-items-center gap-3">
             <a href="/cadastro#planos" className="text-decoration-none text-dark">Planos</a>
@@ -126,7 +125,8 @@ export default function CadastroBasico() {
           </div>
         </div>
       </header>
-      <div className="row justify-content-center w-100">
+      <main className="container py-5 flex-grow-1">
+        <div className="row justify-content-center w-100">
         <div className="col-sm-10 col-md-8 col-lg-6">
           <div className="card shadow-sm border-0">
             <div className="card-body p-4">
@@ -256,14 +256,14 @@ export default function CadastroBasico() {
             </div>
           </div>
         </div>
-      </div>
-    <footer className="site-footer py-5 mt-5">
+        </div>
+      </main>
+      <footer className="site-footer py-5 mt-auto">
       <div className="container">
         <div className="row g-3 align-items-center">
           <div className="col-md-4">
             <div className="d-flex align-items-center gap-2">
-              <i className="fas fa-tooth text-primary"></i>
-              <strong className="mb-0">Sisdental</strong>
+              <img src="/logo-sisdental.png" alt="Sisdental Odonto" height={120} />
             </div>
               <div className="small text-white-50 mt-2">© {new Date().getFullYear()} Sisdental — Todos os direitos reservados.</div>
               <div className="d-flex gap-2 mt-3">

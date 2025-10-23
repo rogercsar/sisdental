@@ -209,6 +209,19 @@ body, html {
 .card-hover { transition: transform .2s ease, box-shadow .2s ease; }
 .card-hover:hover { transform: translateY(-2px); box-shadow: 0 .5rem 1rem rgba(0,0,0,.15); }
 
+/* Imagens de features: borda, sombra e hover */
+.feature-img {
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0,0,0,.08);
+  transition: transform .2s ease, box-shadow .2s ease, filter .2s ease;
+}
+.feature-img:hover {
+  transform: scale(1.02);
+  box-shadow: 0 12px 28px rgba(0,0,0,.12);
+  filter: saturate(1.05);
+}
+
 /* Microinterações: botões com leve elevação */
 .btn-lift { transition: transform .15s ease; }
 .btn-lift:hover { transform: translateY(-1px); }

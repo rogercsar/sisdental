@@ -31,6 +31,7 @@ import Cadastro from './pages/Cadastro'
 import CadastroBasico from './pages/CadastroBasico'
 import CadastroProfissional from './pages/CadastroProfissional'
 import CheckoutRetorno from './pages/CheckoutRetorno'
+import CadastroObrigado from './pages/CadastroObrigado'
 import CadastroTeste from './pages/CadastroTeste'
 import Upgrade from './pages/Upgrade'
 import TrialGate from './components/TrialGate'
@@ -92,6 +93,7 @@ function App() {
         <Route path="/cadastro/profissional" element={<CadastroProfissional />} />
         <Route path="/upgrade" element={<Upgrade />} />
         <Route path="/cadastro/retorno" element={<CheckoutRetorno />} />
+        <Route path="/cadastro/obrigado" element={<CadastroObrigado />} />
       </Routes>
     </>
   )

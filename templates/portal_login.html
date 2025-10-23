@@ -25,7 +25,10 @@
 <body>
     <div class="card login-card shadow">
         <div class="card-body p-4">
-            <h3 class="card-title text-center mb-4">Portal do Paciente</h3>
+            <div class="text-center mb-3">
+                <img src="{{ url_for('static', filename='logo-sisdental.png') }}" alt="Sisdental Odonto" height="180">
+            </div>
+            <h3 class="card-title text-center mb-3">Portal do Paciente</h3>
             <p class="text-center text-muted mb-4">Acesse com seu CPF e senha</p>
 
             {# Exibe mensagens flash (erros, sucesso) #}

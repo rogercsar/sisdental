@@ -40,9 +40,8 @@ export default function Login() {
           <div className="card shadow-sm border-0">
             <div className="card-body p-4">
               <div className="text-center mb-3">
-                <i className="fas fa-tooth fa-2x text-primary"></i>
-                <h4 className="mt-2 mb-0">Sisdental</h4>
-                <p className="text-muted small">Acesse o painel administrativo</p>
+                <img src="/logo-sisdental.png" alt="Sisdental Odonto" height={180} />
+                <p className="text-muted small mt-2">Acesse o painel administrativo</p>
               </div>
               {error && <div className="alert alert-danger">{error}</div>}
               <form onSubmit={onSubmit} className="needs-validation" noValidate>

@@ -69,8 +69,8 @@
     {% if session.get('logado') %}
     <nav class="navbar navbar-expand-lg fixed-top">
         <div class="container-fluid">
-        <a class="navbar-brand" href="{{ url_for('home') }}">
-            <i class="fa-solid fa-tooth"></i> SisDental
+        <a class="navbar-brand d-flex align-items-center" href="{{ url_for('home') }}">
+            <img src="{{ url_for('static', filename='logo-sisdental.png') }}" alt="Sisdental Odonto" height="24">
         </a>
         <div class="d-flex align-items-center"> {# Mantém itens à direita #}
             {# Removido o span "Olá, Usuário" para simplificar o layout como no seu original #}

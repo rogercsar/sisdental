@@ -161,7 +161,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     <div id="wrapper">
       <aside id="sidebar" className={collapsed ? 'collapsed' : ''}>
         <div className="brand d-flex align-items-center justify-content-between">
-          <span className="fw-bold">🦷 SisDental</span>
+          <span className="fw-bold d-flex align-items-center">
+            <img src="/logo-sisdental.png" alt="Sisdental Odonto" height={110} />
+          </span>
           <button
             className="btn btn-sm btn-outline-light"
             onClick={toggleSidebar}

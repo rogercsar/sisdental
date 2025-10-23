@@ -53,10 +53,11 @@ export default function CheckoutRetorno() {
 
           localStorage.removeItem('pendingSignup')
           if (data?.session) {
-            setMessage('Pagamento aprovado e cadastro concluído! Redirecionando para login...')
-            setTimeout(() => navigate('/login'), 1500)
+            setMessage('Pagamento aprovado e cadastro concluído! Redirecionando...')
+            setTimeout(() => navigate('/cadastro/obrigado'), 1500)
           } else {
             setMessage('Pagamento aprovado! Verifique seu e-mail para confirmar a conta.')
+            setTimeout(() => navigate('/cadastro/obrigado'), 2000)
           }
         } catch (e: any) {
           setError(e.message ?? String(e))
