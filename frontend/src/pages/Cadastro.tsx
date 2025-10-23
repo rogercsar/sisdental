@@ -140,8 +140,8 @@ export default function Cadastro() {
             <div className="col-lg-6 d-none d-lg-block">
               <div className="text-center">
                 <img
-                  src="https://images.unsplash.com/photo-1588771930293-3410baf1a8dc?q=80&w=1200&auto=format&fit=crop"
-                  alt="Visão do painel Sisdental"
+                  src="/dashboard-hero.svg"
+                  alt="Print do painel Sisdental"
                   className="img-fluid rounded-4 shadow-sm"
                   style={{ maxHeight: 420, objectFit: 'cover' }}
                   loading="lazy"
