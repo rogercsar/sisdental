@@ -118,7 +118,7 @@ export default function CadastroProfissional() {
           </nav>
           <div className="d-flex align-items-center gap-2">
             <Link to="/login" className="btn btn-outline-primary btn-sm btn-lift">Entrar</Link>
-            <Link to="/cadastro#planos" className="btn btn-primary btn-sm btn-lift">Teste grátis</Link>
+            <Link to="/cadastro#planos" className="btn btn-primary btn-sm btn-lift text-white">Teste grátis</Link>
           </div>
         </div>
       </header>
@@ -214,6 +214,12 @@ export default function CadastroProfissional() {
                 <strong className="mb-0">Sisdental</strong>
               </div>
               <div className="small text-white-50 mt-2">© {new Date().getFullYear()} Sisdental — Todos os direitos reservados.</div>
+              <div className="d-flex gap-2 mt-3">
+                <a href="#" className="btn btn-sm btn-outline-light rounded-circle" aria-label="Instagram"><i className="fab fa-instagram"></i></a>
+                <a href="#" className="btn btn-sm btn-outline-light rounded-circle" aria-label="Facebook"><i className="fab fa-facebook-f"></i></a>
+                <a href="#" className="btn btn-sm btn-outline-light rounded-circle" aria-label="LinkedIn"><i className="fab fa-linkedin-in"></i></a>
+                <a href="#" className="btn btn-sm btn-outline-light rounded-circle" aria-label="X"><i className="fab fa-x-twitter"></i></a>
+              </div>
             </div>
             <div className="col-md-4">
               <ul className="list-unstyled small mb-0">

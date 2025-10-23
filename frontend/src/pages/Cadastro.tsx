@@ -117,45 +117,45 @@ export default function Cadastro() {
           </nav>
           <div className="d-flex align-items-center gap-2">
             <Link to="/login" className="btn btn-outline-primary btn-sm btn-lift">Entrar</Link>
-            <Link to="/cadastro#planos" className="btn btn-primary btn-sm btn-lift">Teste grátis</Link>
+            <Link to="/cadastro#planos" className="btn btn-primary btn-sm btn-lift text-white">Teste grátis</Link>
           </div>
         </div>
       </header>
-      <div className="container py-5 pt-nav">
-      <div className="row justify-content-center w-100">
-        <div className="col-lg-10">
-          <div className="position-relative hero-gradient full-bleed text-white p-4 p-md-5 mb-5 min-vh-100 d-flex align-items-center">
-            <div className="row align-items-center">
-              <div className="col-lg-7">
-                <h1 className="h2 fw-bold mb-2">Sisdental</h1>
-                <p className="lead mb-4">Simplifique a gestão da sua clínica: agenda, pacientes, financeiro e comunicação no mesmo lugar.</p>
-                <div className="d-flex gap-2 flex-wrap">
-                  <Link to="/cadastro#planos" className="btn btn-light text-primary fw-semibold btn-lift">
-                    Ver Planos
-                  </Link>
-                  <Link to="/login" className="btn btn-outline-light btn-lift">
-                    Entrar
-                  </Link>
-                </div>
-                <div className="trust-badges mt-3">
-                    <span className="badge bg-white border text-dark"><i className="fas fa-rotate-left text-success me-1"></i> Garantia 7 dias</span>
-                    <span className="badge bg-white border text-dark"><i className="fas fa-ban text-primary me-1"></i> Sem fidelidade</span>
-                    <span className="badge bg-white border text-dark"><i className="fas fa-lock text-success me-1"></i> Pagamento seguro</span>
-                  </div>
+      <section className="hero-gradient full-bleed text-white min-vh-100 d-flex align-items-center pt-nav py-5">
+        <div className="container">
+          <div className="row align-items-center">
+            <div className="col-lg-6">
+              <h1 className="display-5 fw-bold mb-3">Sisdental</h1>
+              <p className="lead mb-4">Simplifique a gestão da sua clínica: agenda, pacientes, financeiro e comunicação no mesmo lugar.</p>
+              <div className="d-flex gap-2 flex-wrap">
+                <Link to="/cadastro#planos" className="btn btn-light text-primary fw-semibold btn-lift">Ver Planos</Link>
+                <Link to="/login" className="btn btn-outline-light btn-lift">Entrar</Link>
               </div>
-              <div className="col-lg-5 d-none d-lg-block">
-                <div className="text-center">
-                  <img
-                    src="https://images.unsplash.com/photo-1588771930293-3410baf1a8dc?q=80&w=1200&auto=format&fit=crop"
-                    alt="Visão do painel Sisdental"
-                    className="img-fluid rounded-4 shadow-sm"
-                    style={{ maxHeight: 360, objectFit: 'cover' }}
-                    loading="lazy"
-                  />
-                </div>
+              <div className="trust-badges mt-3">
+                <span className="badge bg-white border text-dark"><i className="fas fa-rotate-left text-success me-1"></i> Garantia 7 dias</span>
+                <span className="badge bg-white border text-dark"><i className="fas fa-ban text-primary me-1"></i> Sem fidelidade</span>
+                <span className="badge bg-white border text-dark"><i className="fas fa-lock text-success me-1"></i> Pagamento seguro</span>
+              </div>
+            </div>
+            <div className="col-lg-6 d-none d-lg-block">
+              <div className="text-center">
+                <img
+                  src="https://images.unsplash.com/photo-1588771930293-3410baf1a8dc?q=80&w=1200&auto=format&fit=crop"
+                  alt="Visão do painel Sisdental"
+                  className="img-fluid rounded-4 shadow-sm"
+                  style={{ maxHeight: 420, objectFit: 'cover' }}
+                  loading="lazy"
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/vite.svg' }}
+                />
               </div>
             </div>
           </div>
+        </div>
+      </section>
+      <div className="container py-5">
+      <div className="row justify-content-center w-100">
+        <div className="col-lg-10">
+
 
           <div className="row g-4 mb-4">
             <div className="col-lg-6">
@@ -463,6 +463,12 @@ export default function Cadastro() {
               <strong className="mb-0">Sisdental</strong>
             </div>
             <div className="small text-white-50 mt-2">© {new Date().getFullYear()} Sisdental — Todos os direitos reservados.</div>
+            <div className="d-flex gap-2 mt-3">
+              <a href="#" className="btn btn-sm btn-outline-light rounded-circle" aria-label="Instagram"><i className="fab fa-instagram"></i></a>
+              <a href="#" className="btn btn-sm btn-outline-light rounded-circle" aria-label="Facebook"><i className="fab fa-facebook-f"></i></a>
+              <a href="#" className="btn btn-sm btn-outline-light rounded-circle" aria-label="LinkedIn"><i className="fab fa-linkedin-in"></i></a>
+              <a href="#" className="btn btn-sm btn-outline-light rounded-circle" aria-label="X"><i className="fab fa-x-twitter"></i></a>
+            </div>
           </div>
           <div className="col-md-4">
             <ul className="list-unstyled small mb-0">
