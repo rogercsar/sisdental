@@ -94,9 +94,11 @@ body, html {
     transform: translateX(-100%);
     z-index: 999;
     box-shadow: 2px 0 12px rgba(0,0,0,0.25);
+    overflow: hidden; /* impede que a logo vaze quando fechado */
   }
-  #sidebar.collapsed { transform: translateX(-100%); }
-  #sidebar:not(.collapsed) { transform: translateX(0); }
+  /* garantir que no mobile a largura permaneça 250px mesmo colapsado */
+  #sidebar.collapsed { transform: translateX(-100%); width: 250px; pointer-events: none; }
+  #sidebar:not(.collapsed) { transform: translateX(0); pointer-events: auto; }
 
   #content { margin-left: 0 !important; }
 

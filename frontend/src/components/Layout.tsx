@@ -162,7 +162,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <aside id="sidebar" className={collapsed ? 'collapsed' : ''}>
         <div className="brand d-flex align-items-center justify-content-between">
           <span className="fw-bold d-flex align-items-center">
-            <img src="/logo-sisdental.png" alt="Sisdental Odonto" height={110} />
+            <img src="/logo-sisdental.png" alt="Sisdental Odonto" height={70} />
           </span>
           <button
             className="btn btn-sm btn-outline-light"
