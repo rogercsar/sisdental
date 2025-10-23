@@ -107,8 +107,8 @@ export default function Cadastro() {
       <header className="glass-nav">
         <div className="container d-flex align-items-center justify-content-between py-2">
           <Link to="/" className="d-flex align-items-center text-decoration-none">
-            <i className="fas fa-tooth text-primary me-2"></i>
-            <span className="fw-semibold text-dark">Sisdental</span>
+            <i className="fas fa-tooth text-primary me-2 fa-lg"></i>
+            <span className="fw-semibold text-dark fs-5">Sisdental</span>
           </Link>
           <nav className="d-none d-md-flex align-items-center gap-3">
             <a href="#planos" className="text-decoration-none text-dark">Planos</a>
@@ -117,11 +117,11 @@ export default function Cadastro() {
           </nav>
           <div className="d-flex align-items-center gap-2">
             <Link to="/login" className="btn btn-outline-primary btn-sm btn-lift">Entrar</Link>
-            <Link to="/cadastro#planos" className="btn btn-primary btn-sm btn-lift text-white">Teste grátis</Link>
+            <Link to="/cadastro/teste" className="btn btn-primary btn-sm btn-lift text-white">Teste grátis</Link>
           </div>
         </div>
       </header>
-      <section className="hero-gradient full-bleed text-white min-vh-100 d-flex align-items-center pt-nav py-5">
+      <section className="hero-gradient full-bleed text-white d-flex align-items-center pt-nav py-5" style={{ minHeight: '80vh' }}>
         <div className="container">
           <div className="row align-items-center">
             <div className="col-lg-6">
@@ -198,7 +198,7 @@ export default function Cadastro() {
           <div className="row g-4 mb-5">
             <div className="col-md-4">
               <div className="card h-100 shadow-sm border-0 rounded-4 card-hover overflow-hidden">
-                <img src="https://picsum.photos/seed/agenda/1200/800" alt="Agenda inteligente" className="card-img-top" loading="lazy" style={{ height: 160, objectFit: 'cover' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/vite.svg' }} />
+                <img src="/card-agenda.svg" alt="Agenda inteligente" className="card-img-top" loading="lazy" style={{ height: 160, objectFit: 'cover' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/vite.svg' }} />
                 <div className="card-body">
                   <h5 className="card-title">Agenda inteligente</h5>
                   <p className="text-muted mb-0">Confirmações automáticas e visão diária/mensal para reduzir faltas.</p>
@@ -207,7 +207,7 @@ export default function Cadastro() {
             </div>
             <div className="col-md-4">
               <div className="card h-100 shadow-sm border-0 rounded-4 card-hover overflow-hidden">
-                <img src="https://picsum.photos/seed/prontuario/1200/800" alt="Prontuário completo" className="card-img-top" loading="lazy" style={{ height: 160, objectFit: 'cover' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/vite.svg' }} />
+                <img src="/card-prontuario.svg" alt="Prontuário completo" className="card-img-top" loading="lazy" style={{ height: 160, objectFit: 'cover' }} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/vite.svg' }} />
                 <div className="card-body">
                   <h5 className="card-title">Prontuário completo</h5>
                   <p className="text-muted mb-0">Histórico clínico centralizado e odontograma para melhor acompanhamento.</p>
@@ -481,7 +481,7 @@ export default function Cadastro() {
             <div className="small text-uppercase text-white-50">Acesso</div>
             <ul className="list-unstyled small mb-0">
               <li><Link to="/login" className="link-light text-decoration-none">Entrar</Link></li>
-              <li><Link to="/cadastro#planos" className="link-light text-decoration-none">Teste grátis</Link></li>
+              <li><Link to="/cadastro/teste" className="link-light text-decoration-none">Teste grátis</Link></li>
             </ul>
           </div>
         </div>

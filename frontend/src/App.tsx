@@ -31,11 +31,18 @@ import Cadastro from './pages/Cadastro'
 import CadastroBasico from './pages/CadastroBasico'
 import CadastroProfissional from './pages/CadastroProfissional'
 import CheckoutRetorno from './pages/CheckoutRetorno'
++ import CadastroTeste from './pages/CadastroTeste'
++ import Upgrade from './pages/Upgrade'
++ import TrialGate from './components/TrialGate'
 // Remover import do App.css
 
 function App() {
-  return (
-    <Routes>
+-  return (
+-    <Routes>
++  return (
++    <>
++      <TrialGate />
++      <Routes>
       {/* Rotas públicas (sem Layout) */}
       <Route path="/" element={<Login />} />
       <Route path="/login" element={<Login />} />
@@ -81,11 +88,15 @@ function App() {
       {/* Portal do Paciente */}
       <Route path="/portal/home" element={<RequirePortal><Layout><PortalHome /></Layout></RequirePortal>} />
       <Route path="/cadastro" element={<Cadastro />} />
-      <Route path="/cadastro/basico" element={<CadastroBasico />} />
-      <Route path="/cadastro/profissional" element={<CadastroProfissional />} />
-      <Route path="/cadastro/retorno" element={<CheckoutRetorno />} />
-    </Routes>
-  )
+      <Route path="/cadastro/teste" element={<CadastroTeste />} />
+       <Route path="/cadastro/basico" element={<CadastroBasico />} />
+       <Route path="/cadastro/profissional" element={<CadastroProfissional />} />
++      <Route path="/upgrade" element={<Upgrade />} />
+       <Route path="/cadastro/retorno" element={<CheckoutRetorno />} />
+-    </Routes>
++      </Routes>
++    </>
+   )
 }
 
 export default App

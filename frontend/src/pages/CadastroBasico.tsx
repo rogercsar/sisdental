@@ -112,8 +112,8 @@ export default function CadastroBasico() {
       <header className="glass-nav mb-4">
         <div className="container d-flex align-items-center justify-content-between py-2">
           <Link to="/" className="d-flex align-items-center text-decoration-none">
-            <i className="fas fa-tooth text-primary me-2"></i>
-            <span className="fw-semibold text-dark">Sisdental</span>
+            <i className="fas fa-tooth text-primary me-2 fa-lg"></i>
+            <span className="fw-semibold text-dark fs-5">Sisdental</span>
           </Link>
           <nav className="d-none d-md-flex align-items-center gap-3">
             <a href="/cadastro#planos" className="text-decoration-none text-dark">Planos</a>
@@ -122,7 +122,7 @@ export default function CadastroBasico() {
           </nav>
           <div className="d-flex align-items-center gap-2">
             <Link to="/login" className="btn btn-outline-primary btn-sm btn-lift">Entrar</Link>
-            <Link to="/cadastro#planos" className="btn btn-primary btn-sm btn-lift text-white">Teste grátis</Link>
+            <Link to="/cadastro/teste" className="btn btn-primary btn-sm btn-lift text-white">Teste grátis</Link>
           </div>
         </div>
       </header>
@@ -284,7 +284,7 @@ export default function CadastroBasico() {
             <div className="small text-uppercase text-white-50">Acesso</div>
             <ul className="list-unstyled small mb-0">
               <li><Link to="/login" className="link-light text-decoration-none">Entrar</Link></li>
-              <li><Link to="/cadastro#planos" className="link-light text-decoration-none">Teste grátis</Link></li>
+              <li><Link to="/cadastro/teste" className="link-light text-decoration-none">Teste grátis</Link></li>
             </ul>
           </div>
         </div>
