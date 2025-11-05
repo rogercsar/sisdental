@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}Cadastro - SisDental{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="text-center mb-4">
+                <i class="fa-solid fa-user-plus fa-3x text-success"></i>
+                <h3 class="mt-2">Criar Conta de Staff</h3>
+            </div>
+            <form method="POST" action="{{ url_for('auth.register') }}" novalidate>
+                {{ form.hidden_tag() }}
+
+                <div class="form-floating mb-3">
+                    {{ form.username(class="form-control" + (" is-invalid" if form.username.errors else ""), id="username", placeholder="E-mail") }}
+                    {{ form.username.label }}
+                    {% if form.username.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in form.username.errors %}{{ error }}{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-floating mb-3">
+                    {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else ""), id="password", placeholder="Senha") }}
+                    {{ form.password.label }}
+                    {% if form.password.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in form.password.errors %}{{ error }}{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                {{ form.submit(class="btn btn-success w-100") }}
+
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('auth.login') }}">Já tem conta? Faça login</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

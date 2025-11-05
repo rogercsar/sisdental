@@ -43,11 +43,10 @@
                 {% endif %}
             {% endwith %}
 
-            <form method="POST" action="{{ url_for('portal_login') }}"> {# Aponta para a rota Flask #}
+            <form method="POST" action="{{ url_for('portal.portal_login') }}">
                 <div class="mb-3">
                     <label for="cpf" class="form-label">CPF</label>
                     <input type="text" class="form-control" id="cpf" name="cpf" placeholder="Digite seu CPF (somente números)" required>
-                    {# Adicionar máscara de CPF com JS seria ideal aqui #}
                 </div>
                 <div class="mb-4">
                     <label for="password" class="form-label">Senha</label>
@@ -57,10 +56,9 @@
                     <button type="submit" class="btn btn-primary">Entrar</button>
                 </div>
             </form>
-            {# Link para recuperação de senha (implementação futura) #}
-            {# <div class="text-center mt-3">
-                <a href="#">Esqueceu sua senha?</a>
-            </div> #}
+            <div class="text-center mt-3">
+                <a href="{{ url_for('portal.primeiro_acesso') }}">Primeiro acesso? Configure sua senha.</a>
+            </div>
         </div>
     </div>
 

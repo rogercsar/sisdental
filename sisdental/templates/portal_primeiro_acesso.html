@@ -1,0 +1,55 @@
+{% extends "base.html" %}  <!-- Ou o seu arquivo de layout principal -->
+
+{% block title %}Primeiro Acesso - Portal do Paciente{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="text-center">Configure sua Senha</h3>
+                </div>
+                <div class="card-body">
+                    <p class="text-center text-muted">Para seu primeiro acesso, por favor, valide seus dados e crie uma senha segura.</p>
+
+                    <!-- Bloco para exibir mensagens flash -->
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }}">{{ message }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    <form method="POST" action="{{ url_for('portal.primeiro_acesso') }}">
+                        <div class="form-group mb-3">
+                            <label for="cpf">CPF</label>
+                            <input type="text" class="form-control" id="cpf" name="cpf" required placeholder="Digite seu CPF (apenas números)">
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="data_nascimento">Data de Nascimento</label>
+                            <input type="date" class="form-control" id="data_nascimento" name="data_nascimento" required>
+                        </div>
+                        <hr>
+                        <div class="form-group mb-3">
+                            <label for="senha">Nova Senha</label>
+                            <input type="password" class="form-control" id="senha" name="senha" required>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="confirmar_senha">Confirme a Nova Senha</label>
+                            <input type="password" class="form-control" id="confirmar_senha" name="confirmar_senha" required>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">Configurar Senha</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer text-center">
+                    <a href="{{ url_for('portal.portal_login') }}">Já tem uma senha? Faça login aqui.</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
