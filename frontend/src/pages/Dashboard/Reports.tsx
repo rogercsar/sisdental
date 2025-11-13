@@ -6,22 +6,16 @@ import {
   Download,
   Calendar,
   TrendingUp,
-  TrendingDown,
   DollarSign,
   Users,
   Activity,
   Clock,
   CheckCircle,
   XCircle,
-  AlertCircle,
   Filter,
   FileText,
-  PieChart,
-  LineChart,
   Target,
   Award,
-  Percent,
-  Eye,
   ArrowUpRight,
   ArrowDownRight,
   Loader2,
@@ -336,7 +330,7 @@ function TreatmentRevenueChart({ data }: { data: any[] }) {
           label={({ name, percentage }) => `${name} ${percentage}%`}
           labelLine={false}
         >
-          {data.map((entry, index) => (
+          {data.map((_, index) => (
             <Cell key={`cell-${index}`} fill={COLORS.primary[index % COLORS.primary.length]} />
           ))}
         </Pie>
@@ -403,11 +397,11 @@ export default function Reports() {
       
       // Fetch different report types based on selected period
       const [financialResponse, appointmentResponse, dashboardResponse] = await Promise.all([
-        reports.getFinancialReport(selectedPeriod).catch((err) => {
+        reports.getFinancialReport({ period: selectedPeriod }).catch((err) => {
           console.log("Financial report error:", err);
           return { data: null };
         }),
-        reports.getAppointmentReport(selectedPeriod).catch((err) => {
+        reports.getAppointmentReport({ period: selectedPeriod }).catch((err) => {
           console.log("Appointment report error:", err);
           return { data: null };
         }),

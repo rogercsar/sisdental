@@ -74,25 +74,7 @@ const mockTreatments = [
   },
 ];
 
-const mockImages = [
-  {
-    id: "1",
-    type: "xray" as const,
-    title: "Radiografia Panorâmica",
-    date: "2024-01-15",
-    url: "/placeholder-xray.jpg",
-    notes: "Exame inicial"
-  },
-  {
-    id: "2", 
-    type: "photo" as const,
-    title: "Foto Intraoral",
-    date: "2024-01-15",
-    url: "/placeholder-photo.jpg",
-    tooth: "36",
-    notes: "Antes do tratamento"
-  },
-];
+
 
 export default function PatientRecord() {
   const navigate = useNavigate();

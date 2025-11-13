@@ -170,7 +170,7 @@ function PatientForm({
     diseases: "",
     surgeries: "",
     family_history: "",
-    last_cleaning_date: "",
+    last_cleaning_date: "", // was null
     orthodontic_treatment: false,
     previous_dentist: "",
     chief_complaint: "",
@@ -179,7 +179,7 @@ function PatientForm({
     insurance_provider: "",
     insurance_number: "",
     insurance_coverage: "",
-    insurance_expiration: "",
+    insurance_expiration: "", // was null
     smoking: false,
     alcohol: false,
     drugs: false,
@@ -243,7 +243,7 @@ function PatientForm({
         diseases: "",
         surgeries: "",
         family_history: "",
-        last_cleaning_date: null,
+        last_cleaning_date: "",
         orthodontic_treatment: false,
         previous_dentist: "",
         chief_complaint: "",
@@ -252,7 +252,7 @@ function PatientForm({
         insurance_provider: "",
         insurance_number: "",
         insurance_coverage: "",
-        insurance_expiration: null,
+        insurance_expiration: "",
         smoking: false,
         alcohol: false,
         drugs: false,
@@ -917,7 +917,7 @@ function PatientForm({
 }
 
 export default function Patients() {
-  const navigate = useNavigate();
+  // const navigate = useNavigate(); // removed unused variable
   const [searchTerm, setSearchTerm] = useState("");
 
   const [showPatientForm, setShowPatientForm] = useState(false);

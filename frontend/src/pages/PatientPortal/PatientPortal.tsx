@@ -17,30 +17,17 @@ import {
 } from "@/components/ui/select";
 import {
   Calendar,
-  Clock,
   User,
-  Phone,
-  Mail,
   FileText,
   CreditCard,
   CheckCircle,
   XCircle,
   AlertTriangle,
-  Star,
-  MessageSquare,
   Download,
-  Upload,
   Eye,
-  EyeOff,
-  Heart,
-  Shield,
-  Award,
-  Camera,
   Signature,
   CalendarPlus,
-  History,
   DollarSign,
-  Plus,
   Edit
 } from "lucide-react";
 
