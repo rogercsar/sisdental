@@ -41,8 +41,7 @@ import {
   History,
   DollarSign,
   Plus,
-  Edit,
-  Send
+  Edit
 } from "lucide-react";
 
 // Interface definitions
