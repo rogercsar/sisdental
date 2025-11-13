@@ -8,25 +8,16 @@ import {
   Calendar,
   Phone,
   Mail,
-  MapPin,
   Stethoscope,
   AlertTriangle,
   Heart,
   Pill,
   Edit,
   Plus,
-  Download,
   Upload,
   Image as ImageIcon,
-  Users,
   Shield,
-  FileImage,
   Circle,
-  CheckCircle,
-  Clock,
-  XCircle,
-  DollarSign,
-  TrendingUp,
   Activity,
 } from "lucide-react";
 import { ToothChart } from "@/components/ui/tooth";
@@ -141,7 +132,6 @@ export default function PatientRecord() {
   // Use mock data for appointments and treatments until backend endpoints are ready
   const appointments = mockAppointments;
   const treatments = mockTreatments;
-  const images = mockImages;
 
   useEffect(() => {
     const loadPatient = async () => {
@@ -195,12 +185,7 @@ export default function PatientRecord() {
     );
   }
 
-  const formatCurrency = (value: number) => {
-    return `R$ ${value
-      .toFixed(2)
-      .replace(".", ",")
-      .replace(/\B(?=(\d{3})+(?!\d))/g, ".")}`;
-  };
+
 
   const getAge = (birthDate: string | null) => {
     if (!birthDate) return "N/A";
@@ -214,43 +199,9 @@ export default function PatientRecord() {
     return age;
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "completed":
-        return "bg-green-100 text-green-700 border-green-200";
-      case "scheduled":
-        return "bg-blue-100 text-blue-700 border-blue-200";
-      case "in_progress":
-        return "bg-blue-100 text-blue-700 border-blue-200";
-      case "planned":
-        return "bg-orange-100 text-orange-700 border-orange-200";
-      case "cancelled":
-        return "bg-red-100 text-red-700 border-red-200";
-      case "no_show":
-        return "bg-orange-100 text-orange-700 border-orange-200";
-      default:
-        return "bg-gray-100 text-gray-700 border-gray-200";
-    }
-  };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case "completed":
-        return "Concluída";
-      case "scheduled":
-        return "Agendada";
-      case "in_progress":
-        return "Em Andamento";
-      case "planned":
-        return "Planejado";
-      case "cancelled":
-        return "Cancelada";
-      case "no_show":
-        return "Faltou";
-      default:
-        return status;
-    }
-  };
+
+
 
   const tabs = [
     { id: "overview", label: "Visão Geral", icon: User },
@@ -703,7 +654,7 @@ export default function PatientRecord() {
               </CardHeader>
               <CardContent>
                 <div className="flex justify-center">
-                  <ToothChart />
+                  <ToothChart onToothClick={() => {}} />
                 </div>
               </CardContent>
             </Card>
