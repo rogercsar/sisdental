@@ -42,9 +42,7 @@ import {
   DollarSign,
   Plus,
   Edit,
-  Send,
-  Filter,
-  Search
+  Send
 } from "lucide-react";
 
 // Interface definitions

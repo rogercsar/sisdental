@@ -13,7 +13,6 @@ import {
   Calendar,
   BarChart3,
   FileText,
-  CreditCard,
   Zap,
   Phone,
   MapPin,

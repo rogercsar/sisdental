@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { stripe } from "../../lib/api/client";
 import type { Product, Price } from "../../lib/api/types";
-import { createCheckoutSession } from "../../lib/payments/stripe";
 import { useNavigate } from "react-router-dom";
 import { startMercadoPagoCheckout } from "../../lib/payments/mercadopago";
 
