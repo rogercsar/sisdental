@@ -1,5 +1,3 @@
-import { google } from 'googleapis';
-
 // Google Calendar configuration
 const CALENDAR_SCOPES = ['https://www.googleapis.com/auth/calendar'];
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';

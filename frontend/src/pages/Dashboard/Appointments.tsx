@@ -1,26 +1,21 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { 
   Calendar, 
   Plus, 
   Filter, 
   Search,
   Clock, 
-  User, 
   Phone,
   Mail,
-  MoreVertical,
   CheckCircle,
   XCircle,
   AlertCircle,
   Edit,
   Trash2,
   CalendarDays,
-  Timer,
-  MapPin,
   Stethoscope,
-  TrendingUp,
   Activity,
   Grid3X3,
   List,
@@ -104,7 +99,8 @@ function AppointmentCard({
   };
 
   const statusConfig = getStatusConfig(appointment.status);
-  const StatusIcon = statusConfig.icon;
+  // Removed unused variable StatusIcon
+  // const StatusIcon = statusConfig.icon;
 
   const formatTime = (time: string) => {
     return time;

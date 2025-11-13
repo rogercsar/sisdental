@@ -13,7 +13,6 @@ import {
   doctor,
   stripe,
   reports,
-  patients,
   appointments,
   finances,
 } from "@/lib/api/client";
@@ -136,7 +135,7 @@ export default function Home() {
           stripe.getPrices().catch(() => ({ data: [] })),
           stripe.getProducts().catch(() => ({ data: [] })),
           appointments.list({ limit: 5 }).catch(() => ({ data: [] })),
-          finances.list({ limit: 5 }).catch(() => ({ data: [] })),
+          finances.list({ limit: 5 }).catch(() => ({ finances: [] })),
         ]);
 
         setDashboardStats(statsResponse.data);
@@ -144,7 +143,7 @@ export default function Home() {
         setPrices(pricesResponse.data);
         setProducts(productsResponse.data);
         setRecentAppointments(appointmentsResponse.data?.slice(0, 3) || []);
-        setRecentFinances(financesResponse.data?.slice(0, 2) || []);
+        setRecentFinances(financesResponse.finances?.slice(0, 2) || []);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to fetch data");
       } finally {
@@ -381,11 +380,11 @@ export default function Home() {
             <CardContent>
               <div className="space-y-4">
                 {recentAppointments.length > 0 ? (
-                  recentAppointments.map((appointment, index) => (
-                    <div
-                      key={appointment.id}
-                      className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg"
-                    >
+                  recentAppointments.map((appointment) => (
+                     <div
+                       key={appointment.id}
+                       className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg"
+                     >
                       <div
                         className={`h-2 w-2 rounded-full mt-2 ${
                           appointment.status === "completed"
@@ -434,7 +433,7 @@ export default function Home() {
                 )}
 
                 {recentFinances.length > 0 &&
-                  recentFinances.map((finance, index) => (
+                  recentFinances.map((finance) => (
                     <div
                       key={finance.id}
                       className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg"

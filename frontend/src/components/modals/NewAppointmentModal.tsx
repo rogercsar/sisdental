@@ -63,7 +63,7 @@ export function NewAppointmentModal({
     return false;
   });
 
-  const { isAuthenticated, createEvent } = useGoogleCalendar();
+  const { isAuthenticated } = useGoogleCalendar();
 
   // Load patients when modal opens (only if no specific patient provided)
   const loadPatients = async () => {
@@ -189,6 +189,9 @@ export function NewAppointmentModal({
 
       // Create appointment in store
       await appointments.create(appointmentData);
+      
+      // Notify parent if provided
+      onAppointmentCreated?.();
       
       toast.success("Consulta criada com sucesso!");
       onClose();
