@@ -6,6 +6,10 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
+# Ensure Netlify installs dependencies from netlify/functions/package.json
+[[plugins]]
+  package = "@netlify/plugin-functions-install-core"
+
 [[redirects]]
   from = "/api/checkout/mercadopago/preference"
   to = "/.netlify/functions/checkout_mercadopago"
