@@ -11,14 +11,56 @@ async function requireAuth(event) {
   return user;
 }
 
-async function getDoctorId(admin, userId) {
-  const { data, error } = await admin
+async function getDoctorId(admin, user) {
+  // 1. Try to find an existing doctor
+  const { data: existingDoctors, error: findError } = await admin
     .from('doctors')
     .select('id')
-    .eq('user_id', userId)
+    .eq('user_id', user.id)
     .limit(1);
-  if (error) throw new Error(error.message);
-  return data && data.length > 0 ? data[0].id : null;
+
+  if (findError) {
+    console.error('Error finding doctor:', findError.message);
+    throw new Error(findError.message);
+  }
+
+  if (existingDoctors && existingDoctors.length > 0) {
+    return existingDoctors[0].id;
+  }
+
+  // 2. If not found, fetch user details from the 'users' table
+  console.log(`No doctor found for user ${user.id}. Fetching user details to create one.`);
+  const { data: userData, error: userError } = await admin
+    .from('users')
+    .select('name, email')
+    .eq('id', user.id)
+    .single();
+
+  if (userError || !userData) {
+    console.error('Error fetching user details:', userError?.message || 'User not found');
+    throw new Error('Could not find user details to create a doctor profile.');
+  }
+
+  // 3. Create a new doctor entry with fetched details
+  const newDoctor = {
+    user_id: user.id,
+    email: userData.email,
+    name: userData.name || userData.email, // Fallback to email if name is null
+  };
+
+  const { data: createdDoctor, error: createError } = await admin
+    .from('doctors')
+    .insert(newDoctor)
+    .select('id')
+    .single();
+
+  if (createError) {
+    console.error('Error creating doctor:', createError.message);
+    throw new Error(`Failed to create doctor entry: ${createError.message}`);
+  }
+
+  console.log(`Successfully created doctor with ID: ${createdDoctor.id} for user: ${user.id}`);
+  return createdDoctor.id;
 }
 
 function json(status, data) {
@@ -158,7 +200,7 @@ exports.handler = async (event) => {
     if (path.endsWith('/api/appointments')) {
       if (event.httpMethod !== 'GET') return methodNotAllowed();
       const user = await requireAuth(event);
-      const doctorId = await getDoctorId(admin, user.id);
+      const doctorId = await getDoctorId(admin, user); // Pass the full user object
       if (!doctorId) return json(400, { error: 'Doctor not found for user' });
 
       let query = admin
