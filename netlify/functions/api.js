@@ -128,46 +128,60 @@ exports.handler = async (event) => {
       if (event.httpMethod !== 'POST') return methodNotAllowed();
       const { email, password, name } = JSON.parse(event.body || '{}');
 
-      // 1. Create the user in Supabase Auth
+      // Step 1: Create the user in Supabase Auth
       const { data: authData, error: authError } = await anon.auth.signUp({
         email,
         password,
         options: {
-          data: { name: name || email }, // Pass name in metadata
+          // Pass the name in the user_metadata
+          data: { name: name || email },
         },
       });
 
       if (authError) {
-        return json(400, { error: `Signup failed: ${authError.message}` });
+        return json(400, { error: `Authentication failed: ${authError.message}` });
       }
 
       const user = authData.user;
       if (!user) {
-        return json(500, { error: 'Signup succeeded but user data was not returned.' });
+        return json(500, { error: 'Signup succeeded but user object was not returned.' });
       }
 
-      // 2. Manually insert the user into the public.users table
-      const { error: insertError } = await admin.from('users').insert({
-        id: user.id,
+      // Step 2: Manually insert the user profile into the public.users table
+      const { error: profileError } = await admin.from('users').insert({
+        id: user.id, // Link to the auth.users table
         email: user.email,
-        name: name || user.email, // Use the provided name or fallback to email
-        role: 'patient', // Default role
+        name: name || user.email, // Use provided name or fallback to email
+        role: 'patient', // Assign a valid default role
       });
 
-      if (insertError) {
-        // This is a critical error. We should ideally delete the auth user to avoid inconsistency.
-        console.error('CRITICAL: User created in auth but failed to insert into public.users:', insertError.message);
-        // Attempt to clean up the auth user
+      if (profileError) {
+        // If profile creation fails, we must delete the auth user to avoid inconsistency.
+        console.error('CRITICAL: Auth user created but profile insertion failed:', profileError.message);
         await admin.auth.admin.deleteUser(user.id);
-        return json(500, { error: `Failed to create user profile: ${insertError.message}` });
+        return json(500, { error: `Failed to create user profile: ${profileError.message}` });
       }
 
-      // 3. Return the session to the user
+      // Step 3: Return the session to the client
       return json(200, {
         access_token: authData.session?.access_token || null,
         refresh_token: authData.session?.refresh_token || null,
-        user,
+        user: user,
       });
+    }
+
+    // SIGNOUT
+    if (path.endsWith('/api/signout')) {
+      if (event.httpMethod !== 'POST') return methodNotAllowed();
+      const token = parseAuth(event);
+      if (token) {
+        const { error } = await anon.auth.admin.signOut(token);
+        if (error) {
+          console.warn('Signout error:', error.message);
+          // Don't block the client from signing out, just log the error.
+        }
+      }
+      return json(200, { message: 'Signed out successfully' });
     }
 
     // ME (alias for /api/auth/me)

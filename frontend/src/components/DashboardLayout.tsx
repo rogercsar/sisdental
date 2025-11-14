@@ -2,7 +2,7 @@ import { ReactNode, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CircleIcon, Home, LogOut } from 'lucide-react';
 import { Button } from './Button';
-import { useUserStore } from '../lib/store/user';
+import { useAuthStore } from '../lib/store/auth';
 import type { User } from '../lib/api/types';
 
 interface UserMenuProps {
@@ -12,11 +12,11 @@ interface UserMenuProps {
 function UserMenu({ user }: UserMenuProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
-  const { signout } = useUserStore();
+  const { signOut } = useAuthStore();
 
   async function handleSignOut() {
     try {
-      await signout();
+      await signOut();
       navigate('/');
     } catch (error) {
       console.error('Error signing out:', error);
@@ -74,7 +74,7 @@ function UserMenu({ user }: UserMenuProps) {
 }
 
 function Header() {
-  const { user } = useUserStore();
+  const { user } = useAuthStore();
 
   return (
     <header className="border-b border-gray-200">
