@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import { auth } from "../api/client";
 import { supabase } from "../supabase";
 import type { User } from "../api/types";
@@ -14,10 +15,12 @@ interface AuthState {
   clearError: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-  user: null,
-  isLoading: false,
-  error: null,
+export const useAuthStore = create(
+  persist<AuthState>(
+    (set) => ({
+      user: null,
+      isLoading: false,
+      error: null,
 
   signIn: async (email: string, password: string) => {
     set({ isLoading: true, error: null });
@@ -135,4 +138,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   clearError: () => set({ error: null }),
-}));
+    }),
+    {
+      name: "auth-storage", // name of the item in the storage (must be unique)
+    }
+  )
+);
