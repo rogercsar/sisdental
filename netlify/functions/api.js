@@ -175,10 +175,11 @@ exports.handler = async (event) => {
       if (event.httpMethod !== 'POST') return methodNotAllowed();
       const token = parseAuth(event);
       if (token) {
-        const { error } = await anon.auth.admin.signOut(token);
+        // Use the admin client to sign out the user by their token
+        const { error } = await admin.auth.admin.signOut(token);
         if (error) {
           console.warn('Signout error:', error.message);
-          // Don't block the client from signing out, just log the error.
+          // Don't block the client from signing out, just log the server-side error.
         }
       }
       return json(200, { message: 'Signed out successfully' });
