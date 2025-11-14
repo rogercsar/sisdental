@@ -1,5 +1,26 @@
 const { createAdminClient, createAnonClient, getUserFromToken } = require('./_supabase');
 
+// Helper to parse auth and get user
+async function requireAuth(event) {
+  const authHeader = event.headers?.authorization || event.headers?.Authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    throw new Error('Missing bearer token');
+  }
+  const token = authHeader.substring('Bearer '.length);
+  const user = await getUserFromToken(token);
+  return user;
+}
+
+async function getDoctorId(admin, userId) {
+  const { data, error } = await admin
+    .from('doctors')
+    .select('id')
+    .eq('user_id', userId)
+    .limit(1);
+  if (error) throw new Error(error.message);
+  return data && data.length > 0 ? data[0].id : null;
+}
+
 function json(status, data) {
   return {
     statusCode: status,
