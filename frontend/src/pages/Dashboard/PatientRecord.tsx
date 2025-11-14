@@ -1,5 +1,4 @@
-﻿# filepath: frontend/src/pages/Dashboard/PatientRecord.tsx
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
 export default function PatientRecord() {
@@ -14,13 +13,21 @@ export default function PatientRecord() {
     setLoadingPatient(true);
     setError(null);
 
-    fetch(`/.netlify/functions/get-patient?id=${encodeURIComponent(id)}`, { credentials: 'include' })
+    fetch(`/.netlify/functions/get-patient?id=${encodeURIComponent(id)}`, {
+      credentials: 'include',
+    })
       .then(async (res) => {
-        if (!res.ok) { const txt = await res.text(); throw new Error(`${res.status} ${txt}`); }
+        if (!res.ok) {
+          const txt = await res.text();
+          throw new Error(`${res.status} ${txt}`);
+        }
         return res.json();
       })
       .then((data) => setPatient(data))
-      .catch((err) => { console.error('Failed to load patient', err); setError(String(err)); })
+      .catch((err) => {
+        console.error('Failed to load patient', err);
+        setError(String(err));
+      })
       .finally(() => setLoadingPatient(false));
   }, [routeId]);
 
