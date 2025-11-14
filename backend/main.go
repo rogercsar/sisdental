@@ -55,6 +55,7 @@ func main() {
 		r.Post("/api/login", handlers.Login)
 		r.Post("/api/signup", handlers.Signup)
 		r.Post("/api/resend-confirmation", handlers.ResendConfirmation)
+		r.Post("/api/admin/seed", handlers.SeedAdmin)
 
 		// Health check
 		r.Get("/api/health", func(w http.ResponseWriter, r *http.Request) {
@@ -206,3 +207,5 @@ func main() {
 		log.Fatal(err)
 	}
 }
+
+r.HandleFunc("/api/admin/seed", handlers.SeedAdmin).Methods("POST")

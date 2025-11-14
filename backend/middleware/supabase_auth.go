@@ -77,9 +77,20 @@ func SupabaseAuth(next http.Handler) http.Handler {
 		}
 
 		email, _ := claims["email"].(string)
+		role := ""
+		if um, ok := claims["user_metadata"].(map[string]interface{}); ok {
+			if r, ok := um["role"].(string); ok { role = r }
+		}
+		if role == "" {
+			if am, ok := claims["app_metadata"].(map[string]interface{}); ok {
+				if r, ok := am["role"].(string); ok { role = r }
+			}
+		}
+
 		user := map[string]interface{}{
 			"id":    userID,
 			"email": email,
+			"role":  role,
 		}
 
 		// Add token and user info to request context
