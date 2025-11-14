@@ -15,8 +15,8 @@ interface AuthState {
   clearError: () => void;
 }
 
-export const useAuthStore = create<AuthState>(
-  persist(
+export const useAuthStore = create(
+  persist<AuthState>(
     (set) => ({
       user: null,
       isLoading: false,
