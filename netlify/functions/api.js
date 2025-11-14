@@ -20,43 +20,43 @@ async function getDoctorId(admin, user) {
     .limit(1);
 
   if (findError) {
-    console.error('Error finding doctor:', findError.message);
-    throw new Error(findError.message);
+    // Log the error but don't throw, as we can try to create a doctor
+    console.warn('Error finding doctor, will attempt to create one:', findError.message);
   }
 
   if (existingDoctors && existingDoctors.length > 0) {
     return existingDoctors[0].id;
   }
 
-  // 2. If not found, fetch user details from the 'users' table
-  console.log(`No doctor found for user ${user.id}. Fetching user details to create one.`);
-  const { data: userData, error: userError } = await admin
-    .from('users')
-    .select('name, email')
-    .eq('id', user.id)
-    .single();
+  // 2. If not found, create a new doctor entry
+  console.log(`No doctor found for user ${user.id}. Attempting to create a new one.`);
 
-  if (userError || !userData) {
-    console.error('Error fetching user details:', userError?.message || 'User not found');
-    throw new Error('Could not find user details to create a doctor profile.');
-  }
+  // Robustly determine the name, falling back to email
+  const name = user.user_metadata?.name || user.email || `User ${user.id}`;
 
-  // 3. Create a new doctor entry with fetched details
-  const newDoctor = {
+  const newDoctorPayload = {
     user_id: user.id,
-    email: userData.email,
-    name: userData.name || userData.email, // Fallback to email if name is null
+    email: user.email,
+    name: name,
   };
 
   const { data: createdDoctor, error: createError } = await admin
     .from('doctors')
-    .insert(newDoctor)
+    .insert(newDoctorPayload)
     .select('id')
     .single();
 
   if (createError) {
     console.error('Error creating doctor:', createError.message);
+    // Provide a more specific error message if possible
+    if (createError.message.includes('violates not-null constraint')) {
+      throw new Error('Could not determine required fields (e.g., name) to create a doctor profile.');
+    }
     throw new Error(`Failed to create doctor entry: ${createError.message}`);
+  }
+
+  if (!createdDoctor) {
+    throw new Error('Failed to create doctor entry and could not retrieve the new ID.');
   }
 
   console.log(`Successfully created doctor with ID: ${createdDoctor.id} for user: ${user.id}`);
@@ -201,7 +201,6 @@ exports.handler = async (event) => {
       if (event.httpMethod !== 'GET') return methodNotAllowed();
       const user = await requireAuth(event);
       const doctorId = await getDoctorId(admin, user); // Pass the full user object
-      if (!doctorId) return json(400, { error: 'Doctor not found for user' });
 
       let query = admin
         .from('appointments')
