@@ -53,7 +53,7 @@ export default function CheckoutSuccess() {
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           <div className="text-center">
-            <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
+            <CheckCircle className="mx-auto h-12 w-12 text-blue-600" />
             <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
               Payment Successful!
             </h2>
@@ -63,7 +63,7 @@ export default function CheckoutSuccess() {
             <div className="mt-6">
               <button
                 onClick={handleContinueToDashboard}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="w-full flex justify-center py-2 px-4 rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 Continue to Dashboard
               </button>
