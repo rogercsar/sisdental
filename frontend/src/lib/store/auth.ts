@@ -141,10 +141,6 @@ export const useAuthStore = create(
     }),
     {
       name: "auth-storage", // name of the item in the storage (must be unique)
-      partialize: (state) =>
-        Object.fromEntries(
-          Object.entries(state).filter(([key]) => ['user'].includes(key))
-        ),
     }
   )
 );
