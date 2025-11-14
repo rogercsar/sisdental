@@ -127,23 +127,45 @@ exports.handler = async (event) => {
     if (path.endsWith('/api/signup')) {
       if (event.httpMethod !== 'POST') return methodNotAllowed();
       const { email, password, name } = JSON.parse(event.body || '{}');
-      const { data, error } = await anon.auth.signUp({
+
+      // 1. Create the user in Supabase Auth
+      const { data: authData, error: authError } = await anon.auth.signUp({
         email,
         password,
         options: {
-          data: { name },
+          data: { name: name || email }, // Pass name in metadata
         },
       });
-      if (error) return json(400, { error: error.message });
-      const { user, session } = data;
-      let finalSession = session;
-      if (!finalSession) {
-        const { data: loginData, error: loginError } = await anon.auth.signInWithPassword({ email, password });
-        if (!loginError) finalSession = loginData.session;
+
+      if (authError) {
+        return json(400, { error: `Signup failed: ${authError.message}` });
       }
+
+      const user = authData.user;
+      if (!user) {
+        return json(500, { error: 'Signup succeeded but user data was not returned.' });
+      }
+
+      // 2. Manually insert the user into the public.users table
+      const { error: insertError } = await admin.from('users').insert({
+        id: user.id,
+        email: user.email,
+        name: name || user.email, // Use the provided name or fallback to email
+        role: 'patient', // Default role
+      });
+
+      if (insertError) {
+        // This is a critical error. We should ideally delete the auth user to avoid inconsistency.
+        console.error('CRITICAL: User created in auth but failed to insert into public.users:', insertError.message);
+        // Attempt to clean up the auth user
+        await admin.auth.admin.deleteUser(user.id);
+        return json(500, { error: `Failed to create user profile: ${insertError.message}` });
+      }
+
+      // 3. Return the session to the user
       return json(200, {
-        access_token: finalSession?.access_token || null,
-        refresh_token: finalSession?.refresh_token || null,
+        access_token: authData.session?.access_token || null,
+        refresh_token: authData.session?.refresh_token || null,
         user,
       });
     }
