@@ -26,6 +26,9 @@ function parseAuth(event) {
   return authHeader.substring('Bearer '.length);
 }
 
+// Optional proxy base to external Go backend
+const PROXY_BASE = process.env.BACKEND_URL || process.env.API_URL || '';
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return {
@@ -82,8 +85,8 @@ exports.handler = async (event) => {
       });
     }
 
-    // ME
-    if (path.endsWith('/api/me')) {
+    // ME (alias for /api/auth/me)
+    if (path.endsWith('/api/me') || path.endsWith('/api/auth/me')) {
       if (event.httpMethod !== 'GET') return methodNotAllowed();
       const token = parseAuth(event);
       if (!token) return json(401, { error: 'Missing bearer token' });
@@ -128,6 +131,35 @@ exports.handler = async (event) => {
       const { data, error } = await admin.from('patients').select('*').eq('id', id).single();
       if (error) return json(404, { error: 'Patient not found' });
       return json(200, { data, error: null });
+    }
+
+    // Fallback: proxy to external backend if configured
+    if (PROXY_BASE) {
+      const query = event.rawQuery ? `?${event.rawQuery}` : '';
+      const url = `${PROXY_BASE}${path}${query}`;
+      let body = event.body;
+      if (event.isBase64Encoded && body) {
+        body = Buffer.from(body, 'base64').toString('utf8');
+      }
+      const headers = {
+        Authorization: event.headers?.authorization || event.headers?.Authorization || undefined,
+        'Content-Type': event.headers?.['content-type'] || 'application/json',
+      };
+      const resp = await fetch(url, {
+        method: event.httpMethod,
+        headers,
+        body: ['GET', 'HEAD'].includes(event.httpMethod) ? undefined : body,
+        redirect: 'manual',
+      });
+      const text = await resp.text();
+      return {
+        statusCode: resp.status,
+        headers: {
+          'Content-Type': resp.headers.get('content-type') || 'application/json',
+          'Cache-Control': 'no-store',
+        },
+        body: text,
+      };
     }
 
     return notFound();

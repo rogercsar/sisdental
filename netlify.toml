@@ -20,6 +20,11 @@
   to = "/.netlify/functions/mp_webhook"
   status = 200
 
+[[redirects]]
+  from = "/api/stripe/webhook"
+  to = "/.netlify/functions/stripe_webhook"
+  status = 200
+
 # Generic API redirect to Netlify Functions
 [[redirects]]
   from = "/api/*"
