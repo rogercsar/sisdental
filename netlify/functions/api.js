@@ -154,6 +154,77 @@ exports.handler = async (event) => {
       return json(200, { data, error: null });
     }
 
+    // LIST APPOINTMENTS (protected)
+    if (path.endsWith('/api/appointments')) {
+      if (event.httpMethod !== 'GET') return methodNotAllowed();
+      const user = await requireAuth(event);
+      const doctorId = await getDoctorId(admin, user.id);
+      if (!doctorId) return json(400, { error: 'Doctor not found for user' });
+
+      let query = admin
+        .from('appointments')
+        .select('*, patients(name, email, phone)') // Optimized Query
+        .eq('doctor_id', doctorId)
+        .is('deleted_at', null)
+        .order('date_time', { ascending: true });
+
+      const params = event.queryStringParameters || {};
+
+      // Filtering
+      if (params.date) {
+        const startTime = `${params.date}T00:00:00Z`;
+        const endTime = new Date(new Date(params.date).getTime() + 24 * 60 * 60 * 1000)
+          .toISOString()
+          .split('T')[0];
+        query = query.gte('date_time', startTime).lt('date_time', `${endTime}T00:00:00Z`);
+      } else {
+        if (params.start_date) query = query.gte('date_time', new Date(params.start_date).toISOString());
+        if (params.end_date) {
+            const endDate = new Date(new Date(params.end_date).getTime() + 24 * 60 * 60 * 1000);
+            query = query.lt('date_time', endDate.toISOString());
+        }
+      }
+      if (params.status) query = query.eq('status', params.status);
+      if (params.patient_id) query = query.eq('patient_id', params.patient_id);
+
+      // Pagination
+      const page = parseInt(params.page || '1', 10);
+      const limit = parseInt(params.limit || '50', 10);
+      const offset = (page - 1) * limit;
+      query = query.range(offset, offset + limit - 1);
+
+      const { data: appointments, error } = await query;
+      if (error) return json(500, { error: `Error fetching appointments: ${error.message}` });
+
+      // Map the results to the desired format
+      const enrichedAppointments = (appointments || []).map((apt) => {
+        const patient = apt.patients; // Joined data from Supabase
+        const aptDateTime = new Date(apt.date_time);
+        return {
+          id: apt.id,
+          patient_id: apt.patient_id,
+          patient_name: patient ? patient.name : '',
+          patient_email: patient ? patient.email : '',
+          patient_phone: patient ? patient.phone : '',
+          date: aptDateTime.toISOString().split('T')[0],
+          time: aptDateTime.toISOString().split('T')[1].substring(0, 5),
+          duration: apt.duration,
+          treatment: apt.type,
+          status: apt.status,
+          notes: apt.notes,
+          is_first_visit: apt.is_first_visit,
+          created_at: apt.created_at,
+          updated_at: apt.updated_at,
+        };
+      });
+
+      return json(200, {
+        data: enrichedAppointments,
+        success: true,
+        message: 'Appointments retrieved successfully',
+      });
+    }
+
     // Fallback: proxy to external backend if configured
     if (PROXY_BASE) {
       const query = event.rawQuery ? `?${event.rawQuery}` : '';
