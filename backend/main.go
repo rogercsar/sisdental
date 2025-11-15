@@ -42,7 +42,7 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:5173", "http://localhost:3000", "https://sisdental.netlify.app"},
+		AllowedOrigins:   []string{"http://localhost:5173", "http://localhost:3000"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
@@ -55,7 +55,6 @@ func main() {
 		r.Post("/api/login", handlers.Login)
 		r.Post("/api/signup", handlers.Signup)
 		r.Post("/api/resend-confirmation", handlers.ResendConfirmation)
-		r.Post("/api/admin/seed", handlers.SeedAdmin)
 
 		// Health check
 		r.Get("/api/health", func(w http.ResponseWriter, r *http.Request) {
@@ -207,5 +206,3 @@ func main() {
 		log.Fatal(err)
 	}
 }
-
-r.HandleFunc("/api/admin/seed", handlers.SeedAdmin).Methods("POST")

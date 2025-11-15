@@ -1,6 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
-import { useAuthStore } from "./lib/store/auth";
-import Landing from "./pages/Landing/Landing";
+import { Routes, Route } from "react-router-dom";
 import DashboardLayout from "./components/layout/DashboardLayout";
 import { RootLayout } from "./components/RootLayout";
 import { AuthProvider } from "./components/AuthProvider";
@@ -25,7 +23,6 @@ function App() {
     <AuthProvider>
       <RootLayout>
         <Routes>
-          <Route path="/" element={<RootEntry />} />
           <Route path="/login" element={<Login />} />
           <Route path="/sign-up" element={<SignUp />} />
           <Route path="/pricing" element={<Pricing />} />
@@ -36,71 +33,57 @@ function App() {
           <Route
             path="/dashboard"
             element={
-              <ProtectedRoute>
-                <DashboardLayout>
-                  <Home />
-                </DashboardLayout>
-              </ProtectedRoute>
+              <DashboardLayout>
+                <Home />
+              </DashboardLayout>
             }
           />
           <Route
             path="/dashboard/patients"
             element={
-              <ProtectedRoute>
-                <DashboardLayout>
-                  <Patients />
-                </DashboardLayout>
-              </ProtectedRoute>
+              <DashboardLayout>
+                <Patients />
+              </DashboardLayout>
             }
           />
           <Route
             path="/dashboard/appointments"
             element={
-              <ProtectedRoute>
-                <DashboardLayout>
-                  <Appointments />
-                </DashboardLayout>
-              </ProtectedRoute>
+              <DashboardLayout>
+                <Appointments />
+              </DashboardLayout>
             }
           />
           <Route
             path="/dashboard/finances"
             element={
-              <ProtectedRoute>
-                <DashboardLayout>
-                  <Finances />
-                </DashboardLayout>
-              </ProtectedRoute>
+              <DashboardLayout>
+                <Finances />
+              </DashboardLayout>
             }
           />
           <Route
             path="/dashboard/patients/:id"
             element={
-              <ProtectedRoute>
-                <DashboardLayout>
-                  <PatientRecord />
-                </DashboardLayout>
-              </ProtectedRoute>
+              <DashboardLayout>
+                <PatientRecord />
+              </DashboardLayout>
             }
           />
           <Route
             path="/dashboard/reports"
             element={
-              <ProtectedRoute>
-                <DashboardLayout>
-                  <Reports />
-                </DashboardLayout>
-              </ProtectedRoute>
+              <DashboardLayout>
+                <Reports />
+              </DashboardLayout>
             }
           />
           <Route
             path="/dashboard/settings"
             element={
-              <ProtectedRoute>
-                <DashboardLayout>
-                  <Settings />
-                </DashboardLayout>
-              </ProtectedRoute>
+              <DashboardLayout>
+                <Settings />
+              </DashboardLayout>
             }
           />
 
@@ -112,16 +95,3 @@ function App() {
 }
 
 export default App;
-
-function RootEntry() {
-  const { user, isLoading } = useAuthStore();
-  if (isLoading) return null;
-  return user ? <Navigate to="/dashboard" replace /> : <Landing />;
-}
-
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, isLoading } = useAuthStore();
-  if (isLoading) return null;
-  if (!user) return <Navigate to="/login" replace />;
-  return <>{children}</>;
-}

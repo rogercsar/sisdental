@@ -7,6 +7,9 @@ import {
   Filter, 
   Search,
   TrendingUp,
+  TrendingDown,
+  Calendar,
+  CreditCard,
   PiggyBank,
   Receipt,
   ArrowUpRight,
@@ -18,6 +21,8 @@ import {
   Download,
   FileText,
   Wallet,
+  Building,
+  User,
   Activity,
   BarChart3,
   Loader2,
@@ -194,21 +199,20 @@ export default function Finances() {
         status: filterStatus !== "all" ? filterStatus : undefined
       });
       
-      if (response && Array.isArray(response.finances)) {
-        const transactions = response.finances as Transaction[];
-        setTransactionList(transactions);
+      if (response.data) {
+        setTransactionList(response.data);
         // Calculate summary from data
-        const revenue = transactions
+        const revenue = response.data
           .filter(t => t.type === "income" && t.status === "completed")
-          .reduce((sum: number, t: Transaction) => sum + t.amount, 0);
+          .reduce((sum, t) => sum + t.amount, 0);
         
-        const expenses = transactions
+        const expenses = response.data
           .filter(t => t.type === "expense" && t.status === "completed")
-          .reduce((sum: number, t: Transaction) => sum + t.amount, 0);
+          .reduce((sum, t) => sum + t.amount, 0);
         
-        const pending = transactions
+        const pending = response.data
           .filter(t => t.status === "pending")
-          .reduce((sum: number, t: Transaction) => sum + t.amount, 0);
+          .reduce((sum, t) => sum + t.amount, 0);
 
         setSummary({
           total_revenue: revenue,

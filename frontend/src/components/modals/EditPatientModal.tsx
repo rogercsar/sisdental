@@ -189,13 +189,12 @@ export function EditPatientModal({
     try {
       const updateData = {
         ...formData,
-        // manter como string (YYYY-MM-DD) ou null para compatibilidade com Patient
-        date_of_birth: formData.date_of_birth ? formData.date_of_birth : null,
+        date_of_birth: formData.date_of_birth ? new Date(formData.date_of_birth) : null,
         insurance_expiration: formData.insurance_expiration 
-          ? formData.insurance_expiration 
+          ? new Date(formData.insurance_expiration) 
           : null,
         last_cleaning_date: formData.last_cleaning_date 
-          ? formData.last_cleaning_date 
+          ? new Date(formData.last_cleaning_date) 
           : null,
       };
 

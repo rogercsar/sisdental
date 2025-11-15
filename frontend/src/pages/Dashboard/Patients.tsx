@@ -11,21 +11,26 @@ import {
 import {
   Search,
   Plus,
+  Filter,
   MoreVertical,
   Phone,
   Mail,
+  Calendar,
   User,
   MapPin,
   Edit,
   Trash2,
   Eye,
   Users,
+  TrendingUp,
+  Clock,
+  Activity,
   Save,
   X,
   Loader2,
 } from "lucide-react";
 import { usePatientsStore } from "@/lib/store/patients";
-
+import { useAuthStore } from "@/lib/store/auth";
 import type { Patient } from "@/lib/supabase";
 
 // Patient interface moved to supabase.ts
@@ -39,14 +44,34 @@ function PatientCard({
   onEdit: (patient: Patient) => void;
   onDelete: (patientId: string) => void;
 }) {
-
-  
-
-
-
   const navigate = useNavigate();
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "active":
+        return "bg-green-100 text-green-700";
+      case "pending":
+        return "bg-yellow-100 text-yellow-700";
+      case "inactive":
+        return "bg-gray-100 text-gray-700";
+      default:
+        return "bg-gray-100 text-gray-700";
+    }
+  };
 
-  const calculateAge = (birthDate?: string | null) => {
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case "active":
+        return "Ativo";
+      case "pending":
+        return "Pendente";
+      case "inactive":
+        return "Inativo";
+      default:
+        return "Desconhecido";
+    }
+  };
+
+  const calculateAge = (birthDate?: string) => {
     if (!birthDate) return "N/A";
     const today = new Date();
     const birth = new Date(birthDate);
@@ -77,6 +102,11 @@ function PatientCard({
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <span
+              className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(patient.status || "active")}`}
+            >
+              {getStatusText(patient.status || "active")}
+            </span>
             <Button variant="ghost" size="sm">
               <MoreVertical className="h-4 w-4" />
             </Button>
@@ -100,9 +130,32 @@ function PatientCard({
           )}
         </div>
 
+        <div className="grid grid-cols-2 gap-4 mb-4 p-3 bg-gray-50 rounded-lg">
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Última Visita</p>
+            <p className="text-sm font-medium text-gray-900">
+              {patient.last_visit
+                ? new Date(patient.last_visit).toLocaleDateString("pt-BR")
+                : "N/A"}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Total de Visitas</p>
+            <p className="text-sm font-medium text-gray-900">
+              {patient.total_visits || 0}
+            </p>
+          </div>
+        </div>
 
-
-
+        {patient.next_appointment && (
+          <div className="flex items-center gap-2 text-sm text-blue-600 mb-4">
+            <Calendar className="h-4 w-4" />
+            <span>
+              Próximo agendamento:{" "}
+              {new Date(patient.next_appointment).toLocaleDateString("pt-BR")}
+            </span>
+          </div>
+        )}
 
         <div className="flex gap-2">
           <Button
@@ -170,7 +223,7 @@ function PatientForm({
     diseases: "",
     surgeries: "",
     family_history: "",
-    last_cleaning_date: "", // was null
+    last_cleaning_date: null,
     orthodontic_treatment: false,
     previous_dentist: "",
     chief_complaint: "",
@@ -179,7 +232,7 @@ function PatientForm({
     insurance_provider: "",
     insurance_number: "",
     insurance_coverage: "",
-    insurance_expiration: "", // was null
+    insurance_expiration: null,
     smoking: false,
     alcohol: false,
     drugs: false,
@@ -243,7 +296,7 @@ function PatientForm({
         diseases: "",
         surgeries: "",
         family_history: "",
-        last_cleaning_date: "",
+        last_cleaning_date: null,
         orthodontic_treatment: false,
         previous_dentist: "",
         chief_complaint: "",
@@ -252,7 +305,7 @@ function PatientForm({
         insurance_provider: "",
         insurance_number: "",
         insurance_coverage: "",
-        insurance_expiration: "",
+        insurance_expiration: null,
         smoking: false,
         alcohol: false,
         drugs: false,
@@ -305,7 +358,7 @@ function PatientForm({
           diseases: "",
           surgeries: "",
           family_history: "",
-          last_cleaning_date: "",
+          last_cleaning_date: null,
           orthodontic_treatment: false,
           previous_dentist: "",
           chief_complaint: "",
@@ -314,7 +367,7 @@ function PatientForm({
           insurance_provider: "",
           insurance_number: "",
           insurance_coverage: "",
-          insurance_expiration: "",
+          insurance_expiration: null,
           smoking: false,
           alcohol: false,
           drugs: false,
@@ -351,7 +404,7 @@ function PatientForm({
     return value;
   };
 
-  const handleChange = (field: string, value: string | boolean | number) => {
+  const handleChange = (field: string, value: string | boolean) => {
     let processedValue = value;
 
     // Handle boolean conversions for checkboxes
@@ -917,9 +970,9 @@ function PatientForm({
 }
 
 export default function Patients() {
-  // const navigate = useNavigate(); // removed unused variable
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
-
+  const [filterStatus, setFilterStatus] = useState("all");
   const [showPatientForm, setShowPatientForm] = useState(false);
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
   const {
@@ -936,7 +989,7 @@ export default function Patients() {
     deletePatient,
     clearError,
   } = usePatientsStore();
-
+  const { user } = useAuthStore();
 
   // Use search results when searching, otherwise use regular patient list
   const displayedPatients = searchTerm.trim() !== "" ? searchResults : patientList;
@@ -1003,6 +1056,17 @@ export default function Patients() {
 
   const stats = {
     total: displayedPatients.length,
+    active: displayedPatients.filter((p) => p.status === "active").length,
+    pending: displayedPatients.filter((p) => p.status === "pending").length,
+    thisMonth: displayedPatients.filter((p) => {
+      if (!p.last_visit) return false;
+      const lastVisit = new Date(p.last_visit);
+      const now = new Date();
+      return (
+        lastVisit.getMonth() === now.getMonth() &&
+        lastVisit.getFullYear() === now.getFullYear()
+      );
+    }).length,
   };
 
   return (
@@ -1043,11 +1107,69 @@ export default function Patients() {
           </CardContent>
         </Card>
 
+        <Card className="border-0 shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">
+                  Pacientes Ativos
+                </p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stats.active}
+                </p>
+                <p className="text-xs text-green-600 flex items-center gap-1 mt-1">
+                  <TrendingUp className="h-3 w-3" />
+                  {Math.round((stats.active / stats.total) * 100)}% do total
+                </p>
+              </div>
+              <div className="h-12 w-12 bg-green-100 rounded-lg flex items-center justify-center">
+                <Activity className="h-6 w-6 text-green-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
+        <Card className="border-0 shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Pendentes</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stats.pending}
+                </p>
+                <p className="text-xs text-yellow-600 flex items-center gap-1 mt-1">
+                  <Clock className="h-3 w-3" />
+                  Necessitam atenção
+                </p>
+              </div>
+              <div className="h-12 w-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                <Clock className="h-6 w-6 text-yellow-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-
-
-
+        <Card className="border-0 shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">
+                  Visitas Este Mês
+                </p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stats.thisMonth}
+                </p>
+                <p className="text-xs text-blue-600 flex items-center gap-1 mt-1">
+                  <Calendar className="h-3 w-3" />
+                  Pacientes atendidos
+                </p>
+              </div>
+              <div className="h-12 w-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                <Calendar className="h-6 w-6 text-purple-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Search and Filters */}
@@ -1064,7 +1186,22 @@ export default function Patients() {
                 className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
-
+            <div className="flex gap-2">
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="all">Todos os Status</option>
+                <option value="active">Ativo</option>
+                <option value="pending">Pendente</option>
+                <option value="inactive">Inativo</option>
+              </select>
+              <Button variant="outline" className="gap-2">
+                <Filter className="h-4 w-4" />
+                Filtros
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -1117,6 +1254,8 @@ export default function Patients() {
             <p className="text-gray-600 mb-6">
               {searchTerm.trim() !== ""
                 ? `Nenhum resultado encontrado para "${searchTerm}". Tente outro termo de busca.`
+                : filterStatus !== "all"
+                ? "Tente ajustar os filtros de busca."
                 : "Comece adicionando seu primeiro paciente."}
             </p>
             <Button onClick={() => setShowPatientForm(true)} className="gap-2">

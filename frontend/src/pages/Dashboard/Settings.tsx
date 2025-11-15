@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -8,7 +8,13 @@ import {
   Bell,
   Shield,
   Database,
+  Palette,
+  Globe,
+  Phone,
+  Mail,
+  MapPin,
   Clock,
+  DollarSign,
   Camera,
   Save,
   Download,
@@ -16,16 +22,27 @@ import {
   Eye,
   EyeOff,
   Edit,
+  Trash2,
   AlertTriangle,
   CheckCircle,
   Key,
+  Smartphone,
   Monitor,
+  Moon,
+  Sun,
+  Volume2,
+  VolumeX,
+  FileText,
+  Calendar,
+  CreditCard,
+  Users,
+  Lock,
+  Unlock
 } from "lucide-react";
 import { GoogleCalendarSettings } from "@/components/settings/GoogleCalendarSettings";
-import { settings } from "@/lib/api/client";
 
-// Define local settings type (used for UI state)
-interface LocalSettings {
+// Mock settings data
+interface ClinicSettings {
   clinic: {
     name: string;
     cnpj: string;
@@ -86,20 +103,6 @@ interface LocalSettings {
     soundEnabled: boolean;
   };
 }
-
-// Minimal backend settings types (shape we use from API)
-interface BackendClinicSettings {
-  clinic_name?: string;
-  clinic_address?: string;
-  clinic_phone?: string;
-  clinic_email?: string;
-  logo_url?: string;
-  business_hours?: LocalSettings["clinic"]["workingHours"];
-  appointment_duration?: number;
-  buffer_time?: number;
-  max_advance_booking?: number;
-}
-
 
 const defaultSettings: LocalSettings = {
   clinic: {
@@ -188,7 +191,8 @@ export default function Settings() {
   const [hasChanges, setHasChanges] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [clinicSettings, setClinicSettings] = useState<BackendClinicSettings | null>(null);
+  const [clinicSettings, setClinicSettings] = useState<ClinicSettings | null>(null);
+  const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
 
   const tabs = [
     { id: "clinic", label: "Clínica", icon: Building2 },
@@ -215,8 +219,8 @@ export default function Settings() {
       setError(null);
       
       const [clinicResponse, userResponse] = await Promise.all([
-        settings.getClinicSettings().catch((err: unknown) => ({ data: null, error: err instanceof Error ? err.message : "Unknown error" })),
-        settings.getUserSettings().catch((err: unknown) => ({ data: null, error: err instanceof Error ? err.message : "Unknown error" })),
+        settings.getClinicSettings().catch(err => ({ data: null, error: err.message })),
+        settings.getUserSettings().catch(err => ({ data: null, error: err.message }))
       ]);
 
       if (clinicResponse.data) {
@@ -241,6 +245,7 @@ export default function Settings() {
       }
 
       if (userResponse.data) {
+        setUserSettings(userResponse.data);
         // Map backend data to local state
         setLocalSettings(prev => ({
           ...prev,

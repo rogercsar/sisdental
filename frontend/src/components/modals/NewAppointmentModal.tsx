@@ -63,7 +63,7 @@ export function NewAppointmentModal({
     return false;
   });
 
-  const { isAuthenticated } = useGoogleCalendar();
+  const { isAuthenticated, createEvent } = useGoogleCalendar();
 
   // Load patients when modal opens (only if no specific patient provided)
   const loadPatients = async () => {
@@ -187,13 +187,32 @@ export function NewAppointmentModal({
         status: "scheduled",
       };
 
-      // Create appointment in store
-      await appointments.create(appointmentData);
-      
-      // Notify parent if provided
+      const createdAppointment = await appointments.create(appointmentData);
+
+      // Sync with Google Calendar if enabled
+      if (syncWithGoogleCalendar && isAuthenticated) {
+        try {
+          // Get patient name for calendar sync
+          const selectedPatient = patientName || 
+            patientsList.find(p => p.id.toString() === formData.patientId)?.name ||
+            'Paciente Desconhecido';
+            
+          await createEvent({
+            patientName: selectedPatient,
+            type: formData.type,
+            dateTime: dateTime.toISOString(),
+            duration: formData.duration,
+            notes: formData.notes,
+            dentist: formData.dentist,
+          });
+        } catch (calendarError) {
+          console.error('Google Calendar sync failed:', calendarError);
+          toast.warning('Consulta criada, mas falhou ao sincronizar com Google Calendar');
+        }
+      }
+
+      toast.success("Consulta agendada com sucesso!");
       onAppointmentCreated?.();
-      
-      toast.success("Consulta criada com sucesso!");
       onClose();
       
       // Reset form

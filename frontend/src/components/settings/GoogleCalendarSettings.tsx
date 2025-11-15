@@ -15,10 +15,10 @@ import { Calendar, CheckCircle, XCircle, Settings, Loader2 } from "lucide-react"
 import { toast } from "sonner";
 
 interface GoogleCalendarSettingsProps {
-  onSettingsChange?: (settings: GoogleCalendarSettingsConfig) => void;
+  onSettingsChange?: (settings: GoogleCalendarSettings) => void;
 }
 
-interface GoogleCalendarSettingsConfig {
+interface GoogleCalendarSettings {
   enabled: boolean;
   autoSync: boolean;
   selectedCalendarId: string;
@@ -36,7 +36,7 @@ export function GoogleCalendarSettings({ onSettingsChange }: GoogleCalendarSetti
     error,
   } = useGoogleCalendar();
 
-  const [settings, setSettings] = useState<GoogleCalendarSettingsConfig>({
+  const [settings, setSettings] = useState<GoogleCalendarSettings>({
     enabled: false,
     autoSync: true,
     selectedCalendarId: 'primary',
@@ -95,9 +95,9 @@ export function GoogleCalendarSettings({ onSettingsChange }: GoogleCalendarSetti
     setCalendars([]);
   };
 
-  const updateSetting = <K extends keyof GoogleCalendarSettingsConfig>(
+  const updateSetting = <K extends keyof GoogleCalendarSettings>(
     key: K,
-    value: GoogleCalendarSettingsConfig[K]
+    value: GoogleCalendarSettings[K]
   ) => {
     setSettings(prev => ({ ...prev, [key]: value }));
   };
@@ -244,4 +244,4 @@ export function GoogleCalendarSettings({ onSettingsChange }: GoogleCalendarSetti
   );
 }
 
-export type { GoogleCalendarSettingsConfig };
+export type { GoogleCalendarSettings };

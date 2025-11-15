@@ -9,13 +9,8 @@ import type {
   SubscriptionResponse,
 } from "./types";
 
-// Normalize base URL: use VITE_API_URL if set (without trailing slash),
-// otherwise use empty string so endpoint paths like "/api/..." are correct.
-const rawBase = import.meta.env.VITE_API_URL || "";
-const baseURL = typeof rawBase === "string" ? rawBase.replace(/\/$/, "") : "";
-
 const api = axios.create({
-  baseURL,
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8080",
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",

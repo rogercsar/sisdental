@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { stripe } from "../../lib/api/client";
 import type { Product, Price } from "../../lib/api/types";
+import { createCheckoutSession } from "../../lib/payments/stripe";
 import { useNavigate } from "react-router-dom";
-import { startMercadoPagoCheckout } from "../../lib/payments/mercadopago";
 
 // Helper for currency formatting
 const formatCurrency = (amount: number, currency: string) =>
@@ -22,8 +22,8 @@ interface Plan {
   trialDays: number;
   features: string[];
   priceId: string;
-  popular: boolean;
-  description: string;
+  popular?: boolean;
+  description?: string;
 }
 
 function PricingCard({
@@ -61,7 +61,7 @@ function PricingCard({
     >
       {popular && (
         <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-          <span className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white text-sm font-medium px-4 py-2 rounded-full flex items-center gap-1">
+          <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm font-medium px-4 py-2 rounded-full flex items-center gap-1">
             <Star className="h-4 w-4" />
             Mais Popular
           </span>
@@ -127,8 +127,10 @@ function PricingCard({
           disabled={loading || !priceId}
           className={`w-full h-12 text-base font-semibold transition-all ${
             popular
-              ? "bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white"
-              : "bg-blue-600 hover:bg-blue-700 text-white"
+              ? "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+              : isBasic
+                ? "bg-green-600 hover:bg-green-700 text-white"
+                : "bg-blue-600 hover:bg-blue-700 text-white"
           }`}
         >
           {loading ? "Processando..." : "Começar Agora"}
@@ -231,15 +233,7 @@ export default function PricingPage() {
   const handleCheckout = async (priceId: string) => {
     setLoadingPriceId(priceId);
     try {
-      const plan = plans.find((p) => p.priceId === priceId);
-      if (!plan) throw new Error("Plano não encontrado");
-
-      await startMercadoPagoCheckout({
-        title: `Sisdental — Plano ${plan.name}`,
-        unit_price: plan.price / 100,
-        currency_id: plan.currency?.toUpperCase() === "BRL" ? "BRL" : (plan.currency?.toUpperCase() as any),
-        metadata: { priceId, interval: plan.interval },
-      });
+      await createCheckoutSession(priceId);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to start checkout");
     } finally {

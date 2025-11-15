@@ -13,6 +13,7 @@ import {
   Calendar,
   BarChart3,
   FileText,
+  CreditCard,
   Zap,
   Phone,
   MapPin,
@@ -88,7 +89,7 @@ export default function SignUp() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 flex">
       {/* Left Side - Branding & Benefits */}
-      <div className="hidden lg:flex lg:w-1/2 xl:w-3/5 bg-gradient-to-br from-blue-600 to-cyan-600 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 xl:w-3/5 bg-gradient-to-br from-cyan-600 to-blue-600 relative overflow-hidden">
         <div className="absolute inset-0 bg-black/10"></div>
         <div className="relative z-10 flex flex-col justify-center px-12 xl:px-20 text-white">
           <div className="mb-8">
@@ -98,16 +99,16 @@ export default function SignUp() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold">SisDental</h1>
-                <p className="text-blue-100 text-sm">Sistema de Gestão Odontológica</p>
+                <p className="text-cyan-100 text-sm">Sistema de Gestão Odontológica</p>
               </div>
             </div>
             
             <h2 className="text-4xl xl:text-5xl font-bold mb-4 leading-tight">
               Transforme sua<br />
-              <span className="text-cyan-200">clínica dental</span><br />
+              <span className="text-blue-200">clínica dental</span><br />
               hoje mesmo
             </h2>
-            <p className="text-lg text-blue-100 mb-8 leading-relaxed">
+            <p className="text-lg text-cyan-100 mb-8 leading-relaxed">
               Junte-se a centenas de dentistas que já modernizaram sua gestão com nossa plataforma completa e intuitiva.
             </p>
           </div>
@@ -115,23 +116,23 @@ export default function SignUp() {
           <div className="grid grid-cols-1 gap-4 mb-8">
             <div className="flex items-center gap-3">
               <CheckCircle className="h-5 w-5 text-green-300 flex-shrink-0" />
-              <span className="text-blue-100">Gestão completa de pacientes e prontuários</span>
+              <span className="text-cyan-100">Gestão completa de pacientes e prontuários</span>
             </div>
             <div className="flex items-center gap-3">
               <CheckCircle className="h-5 w-5 text-green-300 flex-shrink-0" />
-              <span className="text-blue-100">Agendamento inteligente e lembretes automáticos</span>
+              <span className="text-cyan-100">Agendamento inteligente e lembretes automáticos</span>
             </div>
             <div className="flex items-center gap-3">
               <CheckCircle className="h-5 w-5 text-green-300 flex-shrink-0" />
-              <span className="text-blue-100">Controle financeiro e faturamento</span>
+              <span className="text-cyan-100">Controle financeiro e faturamento</span>
             </div>
             <div className="flex items-center gap-3">
               <CheckCircle className="h-5 w-5 text-green-300 flex-shrink-0" />
-              <span className="text-blue-100">Relatórios detalhados e analytics</span>
+              <span className="text-cyan-100">Relatórios detalhados e analytics</span>
             </div>
             <div className="flex items-center gap-3">
               <CheckCircle className="h-5 w-5 text-green-300 flex-shrink-0" />
-              <span className="text-blue-100">Segurança médica e backup automático</span>
+              <span className="text-cyan-100">Segurança médica e backup automático</span>
             </div>
           </div>
 
@@ -142,7 +143,7 @@ export default function SignUp() {
               </div>
               <div>
                 <h3 className="font-semibold text-lg">500+</h3>
-                <p className="text-blue-100 text-sm">Dentistas ativos</p>
+                <p className="text-cyan-100 text-sm">Dentistas ativos</p>
               </div>
             </div>
             
@@ -152,7 +153,7 @@ export default function SignUp() {
               </div>
               <div>
                 <h3 className="font-semibold text-lg">10k+</h3>
-                <p className="text-blue-100 text-sm">Consultas agendadas</p>
+                <p className="text-cyan-100 text-sm">Consultas agendadas</p>
               </div>
             </div>
           </div>
@@ -169,7 +170,7 @@ export default function SignUp() {
           {/* Mobile header */}
           <div className="lg:hidden text-center mb-8">
             <div className="flex items-center justify-center gap-3 mb-4">
-              <div className="h-10 w-10 bg-blue-600 rounded-xl flex items-center justify-center">
+              <div className="h-10 w-10 bg-cyan-600 rounded-xl flex items-center justify-center">
                 <Stethoscope className="h-6 w-6 text-white" />
               </div>
               <h1 className="text-xl font-bold text-gray-900">SisDental</h1>
@@ -192,14 +193,14 @@ export default function SignUp() {
                     <div key={stepNumber} className="flex items-center">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
                         step >= stepNumber 
-                          ? 'bg-blue-600 text-white' 
+                          ? 'bg-cyan-600 text-white' 
                           : 'bg-gray-200 text-gray-600'
                       }`}>
                         {stepNumber}
                       </div>
                       {stepNumber < 3 && (
                         <div className={`w-8 h-0.5 ${
-                          step > stepNumber ? 'bg-blue-600' : 'bg-gray-200'
+                          step > stepNumber ? 'bg-cyan-600' : 'bg-gray-200'
                         }`} />
                       )}
                     </div>
@@ -227,7 +228,7 @@ export default function SignUp() {
                           autoComplete="name"
                           required
                           maxLength={100}
-                          className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm hover:bg-white/80"
+                          className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm hover:bg-white/80"
                           placeholder="Dr. João Silva"
                         />
                       </div>
@@ -247,7 +248,7 @@ export default function SignUp() {
                           autoComplete="email"
                           required
                           maxLength={100}
-                          className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm hover:bg-white/80"
+                          className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm hover:bg-white/80"
                           placeholder="contato@clinica.com"
                         />
                       </div>
@@ -268,7 +269,7 @@ export default function SignUp() {
                           required
                           minLength={8}
                           maxLength={100}
-                          className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm hover:bg-white/80"
+                          className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm hover:bg-white/80"
                           placeholder="Mínimo 8 caracteres"
                         />
                       </div>
@@ -295,7 +296,7 @@ export default function SignUp() {
                           onChange={(e) => handleInputChange('license_number', e.target.value)}
                           required
                           maxLength={20}
-                          className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm hover:bg-white/80"
+                          className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm hover:bg-white/80"
                           placeholder="CRO/SP 123456"
                         />
                       </div>
@@ -312,7 +313,7 @@ export default function SignUp() {
                           value={formData.specialization}
                           onChange={(e) => handleInputChange('specialization', e.target.value)}
                           required
-                          className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm hover:bg-white/80"
+                          className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm hover:bg-white/80"
                         >
                           <option value="">Selecione sua especialização</option>
                           <option value="clinico_geral">Clínico Geral</option>
@@ -343,7 +344,7 @@ export default function SignUp() {
                             onChange={(e) => handleInputChange('graduation_year', e.target.value)}
                             min="1950"
                             max={new Date().getFullYear()}
-                            className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm hover:bg-white/80"
+                            className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm hover:bg-white/80"
                             placeholder="2020"
                           />
                         </div>
@@ -362,7 +363,7 @@ export default function SignUp() {
                             onChange={(e) => handleInputChange('phone', e.target.value)}
                             required
                             maxLength={20}
-                            className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm hover:bg-white/80"
+                            className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm hover:bg-white/80"
                             placeholder="(11) 99999-9999"
                           />
                         </div>
@@ -387,7 +388,7 @@ export default function SignUp() {
                           onChange={(e) => handleInputChange('clinic_name', e.target.value)}
                           required
                           maxLength={100}
-                          className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm hover:bg-white/80"
+                          className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm hover:bg-white/80"
                           placeholder="Clínica OdontoVida"
                         />
                       </div>
@@ -406,7 +407,7 @@ export default function SignUp() {
                           onChange={(e) => handleInputChange('clinic_address', e.target.value)}
                           required
                           maxLength={200}
-                          className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm hover:bg-white/80"
+                          className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm hover:bg-white/80"
                           placeholder="Rua das Flores, 123, Centro"
                         />
                       </div>
@@ -424,7 +425,7 @@ export default function SignUp() {
                           onChange={(e) => handleInputChange('clinic_city', e.target.value)}
                           required
                           maxLength={50}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm hover:bg-white/80"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm hover:bg-white/80"
                           placeholder="São Paulo"
                         />
                       </div>
@@ -438,7 +439,7 @@ export default function SignUp() {
                           value={formData.clinic_state}
                           onChange={(e) => handleInputChange('clinic_state', e.target.value)}
                           required
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm hover:bg-white/80"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm hover:bg-white/80"
                         >
                           <option value="">Estado</option>
                           <option value="AC">Acre</option>
@@ -484,7 +485,7 @@ export default function SignUp() {
                           value={formData.clinic_phone}
                           onChange={(e) => handleInputChange('clinic_phone', e.target.value)}
                           maxLength={20}
-                          className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm hover:bg-white/80"
+                          className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm hover:bg-white/80"
                           placeholder="(11) 3333-4444"
                         />
                       </div>
@@ -500,12 +501,12 @@ export default function SignUp() {
                   </div>
                 )}
 
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="bg-cyan-50 border border-cyan-200 rounded-lg p-4">
                   <div className="flex items-start gap-3">
-                    <Zap className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <Zap className="h-5 w-5 text-cyan-600 flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-sm font-medium text-blue-800">Teste gratuito por 30 dias</p>
-                      <p className="text-xs text-blue-600 mt-1">
+                      <p className="text-sm font-medium text-cyan-800">Teste gratuito por 30 dias</p>
+                      <p className="text-xs text-cyan-600 mt-1">
                         Acesso completo a todas as funcionalidades. Não é necessário cartão de crédito.
                       </p>
                     </div>
@@ -532,7 +533,7 @@ export default function SignUp() {
                       size="lg"
                       onClick={nextStep}
                       disabled={!validateStep(step)}
-                      className={`${step === 1 ? 'w-full' : 'flex-1'} bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300`}
+                      className={`${step === 1 ? 'w-full' : 'flex-1'} bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300`}
                     >
                       Continuar
                     </Button>
@@ -540,7 +541,7 @@ export default function SignUp() {
                     <Button
                       type="submit"
                       size="lg"
-                      className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
+                      className="flex-1 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
                       disabled={isLoading || !validateStep(step)}
                     >
                       {isLoading ? (
@@ -560,11 +561,11 @@ export default function SignUp() {
 
                 <p className="text-xs text-gray-500 text-center">
                   Ao criar uma conta, você concorda com nossos{" "}
-                  <Link to="/terms" className="text-blue-600 hover:text-blue-700 font-medium">
+                  <Link to="/terms" className="text-cyan-600 hover:text-cyan-700 font-medium">
                     Termos de Uso
                   </Link>{" "}
                   e{" "}
-                  <Link to="/privacy" className="text-blue-600 hover:text-blue-700 font-medium">
+                  <Link to="/privacy" className="text-cyan-600 hover:text-cyan-700 font-medium">
                     Política de Privacidade
                   </Link>
                 </p>
@@ -601,7 +602,7 @@ export default function SignUp() {
           {/* Features Preview */}
           <div className="mt-8 grid grid-cols-2 gap-4 text-center lg:hidden">
             <div className="flex flex-col items-center p-4 bg-white/60 rounded-lg backdrop-blur-sm">
-              <BarChart3 className="h-8 w-8 text-blue-600 mb-2" />
+              <BarChart3 className="h-8 w-8 text-cyan-600 mb-2" />
               <h3 className="font-semibold text-sm text-gray-900">Relatórios</h3>
               <p className="text-xs text-gray-600">Analytics completos</p>
             </div>
